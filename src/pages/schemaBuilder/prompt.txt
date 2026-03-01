@@ -1,0 +1,257 @@
+create a schema builder component for me to create and edit schemas for forms.
+firstly it will load test list from an api call. The response follows this structure:
+[
+    {
+        "_id": "69a444ab8789843e16ec5eeb",
+        "name": "CBC",
+        "categoryId": "69a444868789843e16ec5ee8",
+        "schemaId": null
+    },
+    {
+        "_id": "69a444b68789843e16ec5eec",
+        "name": "RBC",
+        "categoryId": "69a444868789843e16ec5ee8",
+        "schemaId": null
+    },
+    {
+        "_id": "69a444e28789843e16ec5eed",
+        "name": "HEPATITIS",
+        "categoryId": "69a444868789843e16ec5ee8",
+        "schemaId": null
+    },
+    {
+        "_id": "69a444f18789843e16ec5eee",
+        "name": "KNEE",
+        "categoryId": "69a444918789843e16ec5ee9",
+        "schemaId": null
+    },
+    {
+        "_id": "69a445008789843e16ec5eef",
+        "name": "OPG",
+        "categoryId": "69a444918789843e16ec5ee9",
+        "schemaId": null
+    },
+    {
+        "_id": "69a445118789843e16ec5ef0",
+        "name": "UT 1",
+        "categoryId": "69a4449d8789843e16ec5eea",
+        "schemaId": null
+    },
+    {
+        "_id": "69a4451e8789843e16ec5ef1",
+        "name": "UT 2",
+        "categoryId": "69a4449d8789843e16ec5eea",
+        "schemaId": null
+    }
+]
+
+while creating a schema it will ask to select a test... there will be an element like search and select.
+then I have to enter name/title and description for the schema. 
+A schema will a status of active and Inactive
+by default any schema will have a section. There will be option to add multiple sections.
+Then there will be options to add field/attribute/input to each section. a field can be of the following type:
+    1. Number
+    2. Radio box (Select one from multiple options)
+    3. Dropdown (Select one from multiple options)
+    4. Checkbox (Multi selection)
+    5. Textarea
+    6. Text
+If a field is of type number then there will be option - if the input has a standard referange range or plain number input only
+Standard range type => 
+    1. None, 
+    2. Simple (only number ex. 1-5),
+    3. age based (standard range changes based on age, ex. for age:1-20 standard range is 5-10, for age 20+ standard range is 8-9)
+    4. gender based (standard range changes based on gender, ex. for male the standard range is 10-15, for female 12-16)
+    5. complex (mix of gender and age, ex. male 1-30, range is 1-5, female 1-25, range is 1-3 )
+    6. there will be option to enter units of the number input.
+For other type of fields there will be options to add multiple options and text for text
+
+There will be also option to add a static standard range. which will be just static only.
+
+The whole form will create a new schema or edit an existing schema.. here is a schema demo:
+{
+  "name": "CBC",
+  "description": "trhg hj j",
+  "testId": "69a444ab8789843e16ec5eeb",
+  "isActive": true,
+  "hasStaticStandardRange": false,
+  "staticStandardRange": "",
+  "sections": [
+    {
+      "name": "Section A",
+      "fields": [
+        {
+          "name": "Number",
+          "type": "number",
+          "required": true,
+          "standardRange": {
+            "type": "simple",
+            "data": {
+              "min": "10",
+              "max": "20"
+            }
+          },
+          "unit": "mmHg"
+        },
+        {
+          "name": "Age Based",
+          "type": "number",
+          "required": false,
+          "standardRange": {
+            "type": "age",
+            "data": [
+              {
+                "minAge": "1",
+                "maxAge": "20",
+                "minValue": "10",
+                "maxValue": "50"
+              },
+              {
+                "minAge": "21",
+                "minValue": "51",
+                "maxValue": "80",
+                "maxAge": 999
+              }
+            ]
+          },
+          "unit": "10³/µL"
+        }
+      ]
+    },
+    {
+      "name": "Section B",
+      "fields": [
+        {
+          "name": "Gender Based",
+          "type": "number",
+          "required": false,
+          "standardRange": {
+            "type": "gender",
+            "data": {
+              "male": {
+                "min": "1",
+                "max": "5"
+              },
+              "female": {
+                "min": "2",
+                "max": "5"
+              }
+            }
+          },
+          "unit": "bpm"
+        },
+        {
+          "name": "Age+Gender",
+          "type": "number",
+          "required": false,
+          "standardRange": {
+            "type": "combined",
+            "data": [
+              {
+                "gender": "male",
+                "minAge": "1",
+                "maxAge": "20",
+                "minValue": "10",
+                "maxValue": "30"
+              },
+              {
+                "gender": "female",
+                "minAge": "1",
+                "maxAge": "20",
+                "minValue": "15",
+                "maxValue": "25"
+              },
+              {
+                "gender": "male",
+                "minAge": "31",
+                "minValue": "31",
+                "maxValue": "40",
+                "maxAge": 999
+              },
+              {
+                "gender": "female",
+                "minAge": "26",
+                "minValue": "41",
+                "maxValue": "50",
+                "maxAge": 999
+              }
+            ]
+          },
+          "unit": "mL"
+        }
+      ]
+    },
+    {
+      "name": "Section C",
+      "fields": [
+        {
+          "name": "Text Area",
+          "type": "textarea",
+          "required": false,
+          "maxLength": 200
+        },
+        {
+          "name": "Checkbox",
+          "type": "checkbox",
+          "required": true,
+          "options": [
+            "Checkbox A",
+            "Checkbox B",
+            "Checkbox C"
+          ]
+        },
+        {
+          "name": "Radio Button",
+          "type": "radio",
+          "required": false,
+          "options": [
+            "Positive",
+            "Negative"
+          ]
+        },
+        {
+          "name": "Dropdown",
+          "type": "select",
+          "required": false,
+          "options": [
+            "Dropdown A",
+            "Dropdown B"
+          ]
+        },
+        {
+          "name": "Text",
+          "type": "input",
+          "required": false,
+          "maxLength": 200
+        }
+      ]
+    }
+  ]
+}
+
+you can add a loader while loading the page or skelton
+I am using react with babel compiler. zustand is also installed in my project.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

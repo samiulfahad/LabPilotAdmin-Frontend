@@ -13,7 +13,7 @@ const SelectTest = () => {
     value: test._id,
     label: `${test.name}${test.schemaId ? " (Attached)" : ""}`,
   }));
-
+  // console.log(allTests);
   const handleChange = (e) => {
     setSchema("testId", e.target.value);
   };

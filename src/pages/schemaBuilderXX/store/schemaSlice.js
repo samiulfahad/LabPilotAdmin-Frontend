@@ -29,6 +29,7 @@ const schemaSlice = (set, get) => ({
     try {
       get().startLoading();
       const response = await testService.getTestList();
+      // console.log(response.data);
       set({ testList: response.data });
     } catch (e) {
       get().setPopup({
