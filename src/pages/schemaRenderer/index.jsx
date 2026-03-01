@@ -7,6 +7,382 @@ import TextAreaField from "../../components/html/TextAreaField";
 import schemaService from "../../services/schemaService";
 import LoadingScreen from "../../components/loadingPage";
 
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+  :root {
+    --ink: #0A0B0F;
+    --ink-muted: #6B7280;
+    --ink-faint: #9CA3AF;
+    --surface: #FFFFFF;
+    --surface-raised: #F8F9FB;
+    --surface-hover: #F3F4F6;
+    --border: #E5E7EB;
+    --border-focus: #111827;
+    --accent: #1D4ED8;
+    --accent-light: #EFF6FF;
+    --accent-muted: #93C5FD;
+    --success: #059669;
+    --success-light: #ECFDF5;
+    --danger: #DC2626;
+    --danger-light: #FEF2F2;
+    --warning: #D97706;
+    --warning-light: #FFFBEB;
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow: 0 4px 16px rgba(0,0,0,.06), 0 1px 4px rgba(0,0,0,.04);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04);
+  }
+
+  .fr-root * { box-sizing: border-box; }
+
+  .fr-root {
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    background: var(--surface-raised);
+    background-image:
+      radial-gradient(ellipse 80% 40% at 60% -10%, rgba(29,78,216,.05) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 30% at 10% 100%, rgba(5,150,105,.04) 0%, transparent 70%);
+    padding: 32px 16px 80px;
+    color: var(--ink);
+  }
+
+  /* ── Layout ── */
+  .fr-shell { max-width: 780px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .fr-header { margin-bottom: 36px; }
+  .fr-breadcrumb {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--ink-muted);
+    margin-bottom: 20px;
+  }
+  .fr-breadcrumb-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border); }
+  .fr-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(24px, 4vw, 36px); font-weight: 700;
+    letter-spacing: -.02em; color: var(--ink); line-height: 1.15;
+    margin: 0 0 8px;
+  }
+  .fr-subtitle { font-size: 15px; color: var(--ink-muted); margin: 0; font-weight: 300; }
+  .fr-header-meta {
+    display: flex; align-items: center; gap: 10px; margin-top: 16px;
+  }
+  .fr-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 100px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink-muted);
+  }
+  .fr-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
+
+  /* ── Card ── */
+  .fr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .fr-card-header {
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .fr-card-icon {
+    width: 38px; height: 38px; border-radius: var(--radius-sm);
+    background: var(--ink); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .fr-card-icon svg { color: white; }
+  .fr-card-title {
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    letter-spacing: -.01em; margin: 0 0 2px;
+  }
+  .fr-card-desc { font-size: 13px; color: var(--ink-muted); margin: 0; }
+  .fr-card-body { padding: 28px; }
+
+  /* ── Section navigation ── */
+  .fr-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .fr-tab {
+    flex: 1; padding: 14px 20px; font-size: 13px; font-weight: 600;
+    background: none; border: none; cursor: pointer;
+    color: var(--ink-muted); position: relative;
+    transition: color .15s; letter-spacing: -.01em;
+  }
+  .fr-tab:hover { color: var(--ink); background: var(--surface-hover); }
+  .fr-tab.active { color: var(--ink); }
+  .fr-tab.active::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+    height: 2px; background: var(--ink); border-radius: 2px 2px 0 0;
+  }
+  .fr-tab-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    font-size: 10px; font-weight: 700; margin-right: 7px;
+    background: var(--surface-raised); border: 1px solid var(--border);
+    color: var(--ink-muted);
+  }
+  .fr-tab.active .fr-tab-num {
+    background: var(--ink); color: white; border-color: var(--ink);
+  }
+
+  /* ── Patient info grid ── */
+  .fr-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 560px) { .fr-grid-2 { grid-template-columns: 1fr; } }
+
+  /* ── Fields ── */
+  .fr-field { margin-bottom: 24px; }
+  .fr-field:last-child { margin-bottom: 0; }
+  .fr-label {
+    display: block; font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px;
+  }
+  .fr-label-req { color: var(--danger); margin-left: 2px; }
+
+  .fr-input, .fr-select, .fr-textarea {
+    width: 100%; padding: 11px 14px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 400;
+    color: var(--ink); background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    outline: none; transition: border-color .15s, box-shadow .15s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .fr-input::placeholder, .fr-textarea::placeholder { color: var(--ink-faint); }
+  .fr-input:focus, .fr-select:focus, .fr-textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(10,11,15,.06);
+  }
+  .fr-textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+  .fr-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 38px; cursor: pointer;
+  }
+
+  /* ── Range info ── */
+  .fr-range-info {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 8px; font-size: 12px; color: var(--ink-muted);
+  }
+  .fr-range-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 100px;
+    font-size: 11px; font-weight: 600; letter-spacing: .02em;
+  }
+
+  .fr-status-within { background: var(--success-light); color: var(--success); }
+  .fr-status-above, .fr-status-below { background: var(--danger-light); color: var(--danger); }
+
+  /* ── Radio & Checkbox ── */
+  .fr-options-label {
+    font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--ink-muted); margin-bottom: 12px; display: block;
+  }
+  .fr-options { display: flex; flex-direction: column; gap: 8px; }
+  .fr-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); cursor: pointer;
+    transition: border-color .12s, background .12s; font-size: 14px; font-weight: 400;
+    color: var(--ink);
+  }
+  .fr-option:hover { border-color: #D1D5DB; background: var(--surface-raised); }
+  .fr-option.selected { border-color: var(--ink); background: var(--surface-raised); }
+  .fr-option-ctrl {
+    width: 16px; height: 16px; flex-shrink: 0;
+    border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+    transition: all .12s;
+  }
+  .fr-option-ctrl.radio { border-radius: 50%; }
+  .fr-option-ctrl.checkbox { border-radius: 3px; }
+  .fr-option.selected .fr-option-ctrl {
+    border-color: var(--ink); background: var(--ink);
+  }
+  .fr-option-ctrl-dot {
+    width: 5px; height: 5px; border-radius: 50%; background: white;
+    opacity: 0; transform: scale(0); transition: all .12s;
+  }
+  .fr-option.selected .fr-option-ctrl-dot { opacity: 1; transform: scale(1); }
+  .fr-option-ctrl-check {
+    opacity: 0; transform: scale(0); transition: all .12s;
+  }
+  .fr-option.selected .fr-option-ctrl-check { opacity: 1; transform: scale(1); }
+
+  /* ── Section body ── */
+  .fr-section-body { padding: 28px; }
+  .fr-section-inactive { opacity: .45; pointer-events: none; }
+
+  /* ── Static range box ── */
+  .fr-static-range {
+    padding: 18px 20px; border-radius: var(--radius);
+    background: var(--accent-light); border: 1px solid #BFDBFE;
+    margin-bottom: 24px; font-size: 13px; color: #1E40AF;
+    white-space: pre-line; line-height: 1.7;
+  }
+  .fr-static-range-title {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; margin-bottom: 8px; opacity: .7;
+  }
+
+  /* ── Info notice ── */
+  .fr-notice {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border-radius: var(--radius-sm);
+    background: var(--surface-raised); border: 1px solid var(--border);
+    font-size: 12px; color: var(--ink-muted); margin-top: 20px; line-height: 1.5;
+  }
+  .fr-notice svg { flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Footer ── */
+  .fr-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 28px; border-top: 1px solid var(--border);
+    flex-wrap: wrap; gap: 14px;
+  }
+  .fr-progress-text { font-size: 13px; color: var(--ink-muted); }
+  .fr-progress-text strong { color: var(--ink); font-weight: 600; }
+  .fr-footer-actions { display: flex; gap: 10px; }
+
+  .fr-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    letter-spacing: .01em; cursor: pointer; transition: all .15s;
+    border: 1.5px solid transparent;
+  }
+  .fr-btn-ghost {
+    background: none; border-color: var(--border); color: var(--ink-muted);
+  }
+  .fr-btn-ghost:hover { border-color: #D1D5DB; color: var(--ink); background: var(--surface-raised); }
+  .fr-btn-primary {
+    background: var(--ink); color: white; border-color: var(--ink);
+  }
+  .fr-btn-primary:hover { background: #1F2937; border-color: #1F2937; }
+  .fr-btn-primary:active { transform: scale(.98); }
+
+  /* ── Error / not found ── */
+  .fr-empty {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .fr-empty-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-xl); padding: 48px 40px; text-align: center; max-width: 400px;
+    box-shadow: var(--shadow-lg);
+  }
+  .fr-empty-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--surface-raised); display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px; border: 1px solid var(--border);
+  }
+  .fr-empty-title {
+    font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; margin: 0 0 8px;
+  }
+  .fr-empty-text { font-size: 14px; color: var(--ink-muted); margin: 0; }
+
+  .fr-stack { display: flex; flex-direction: column; gap: 0; }
+  .fr-space-y > * + * { margin-top: 20px; }
+`;
+
+// ─── Injected styles ─────────────────────────────────────────────────────────
+const StyleInjector = () => {
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.textContent = css;
+    document.head.appendChild(el);
+    return () => document.head.removeChild(el);
+  }, []);
+  return null;
+};
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const IconUser = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const IconDoc = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+const IconCheck = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+const IconInfo = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+const IconArrow = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+// ─── FormRenderer ─────────────────────────────────────────────────────────────
 const FormRenderer = () => {
   const [schema, setSchema] = useState(null);
   const [gender, setGender] = useState("");
@@ -20,20 +396,22 @@ const FormRenderer = () => {
 
   if (!schemaId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-lg text-center max-w-md">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+      <div className="fr-root">
+        <StyleInjector />
+        <div className="fr-empty">
+          <div className="fr-empty-card">
+            <div className="fr-empty-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5">
+                <path
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <p className="fr-empty-title">No Form Found</p>
+            <p className="fr-empty-text">Please check the form URL and try again.</p>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Form Found</h3>
-          <p className="text-gray-600">Please check the form URL and try again.</p>
         </div>
       </div>
     );
@@ -112,7 +490,6 @@ const FormRenderer = () => {
     if (type === "simple") {
       min = parseFloat(data.min);
       max = parseFloat(data.max);
-      info = "";
     } else if (type === "gender") {
       if (!g) return null;
       const gd = data[g.toLowerCase()];
@@ -124,13 +501,12 @@ const FormRenderer = () => {
     } else if (type === "age") {
       if (!a || isNaN(ageNum)) return null;
       for (let entry of data) {
-        const minA = parseFloat(entry.minAge);
-        const maxA = entry.maxAge !== 999 ? parseFloat(entry.maxAge) : Infinity;
+        const minA = parseFloat(entry.minAge),
+          maxA = entry.maxAge !== 999 ? parseFloat(entry.maxAge) : Infinity;
         if (ageNum >= minA && ageNum <= maxA) {
           min = parseFloat(entry.minValue);
           max = parseFloat(entry.maxValue);
-          const ageStr = `${entry.minAge}${entry.maxAge === 999 ? "+" : "-" + entry.maxAge}`;
-          info = `for age ${ageStr}`;
+          info = `for age ${entry.minAge}${entry.maxAge === 999 ? "+" : "-" + entry.maxAge}`;
           break;
         }
       }
@@ -138,173 +514,168 @@ const FormRenderer = () => {
       if (!g || !a || isNaN(ageNum)) return null;
       for (let entry of data) {
         if (entry.gender.toLowerCase() === g.toLowerCase()) {
-          const minA = parseFloat(entry.minAge);
-          const maxA = entry.maxAge !== 999 ? parseFloat(entry.maxAge) : Infinity;
+          const minA = parseFloat(entry.minAge),
+            maxA = entry.maxAge !== 999 ? parseFloat(entry.maxAge) : Infinity;
           if (ageNum >= minA && ageNum <= maxA) {
             min = parseFloat(entry.minValue);
             max = parseFloat(entry.maxValue);
-            const ageStr = `${entry.minAge}${entry.maxAge === 999 ? "+" : "-" + entry.maxAge}`;
-            info = `for ${entry.gender.charAt(0).toUpperCase() + entry.gender.slice(1)}, age ${ageStr}`;
+            info = `for ${entry.gender.charAt(0).toUpperCase() + entry.gender.slice(1)}, age ${entry.minAge}${entry.maxAge === 999 ? "+" : "-" + entry.maxAge}`;
             break;
           }
         }
       }
     }
-
-    if (!isNaN(min) && !isNaN(max)) {
-      return { min, max, info };
-    }
-    return null;
+    return !isNaN(min) && !isNaN(max) ? { min, max, info } : null;
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "within":
-        return (
-          <span className="flex items-center text-emerald-600 text-sm">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Within range
-          </span>
-        );
-      case "above":
-      case "below":
-        return (
-          <span className="flex items-center text-rose-600 text-sm">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            {status === "above" ? "Above range" : "Below range"}
-          </span>
-        );
-      default:
-        return null;
-    }
+  const getStatusTag = (status) => {
+    if (!status) return null;
+    const map = {
+      within: { cls: "fr-status-within", label: "Within range" },
+      above: { cls: "fr-status-above", label: "Above range" },
+      below: { cls: "fr-status-below", label: "Below range" },
+    };
+    const s = map[status];
+    return s ? <span className={`fr-range-tag ${s.cls}`}>{s.label}</span> : null;
   };
 
+  // ── Field renderer ──────────────────────────────────────────────────────────
   const renderField = (field) => {
     const { name, type, required, options = [], maxLength, unit = "", standardRange } = field;
     const value = formData[name] || (type === "checkbox" ? [] : "");
     const range = standardRange ? getApplicableRange(standardRange, gender, age) : null;
     const status = statuses[name] || "";
-    const labelText = `${name}${unit ? ` (${unit})` : ""}${required ? " *" : ""}`;
+    const unitLabel = unit ? ` (${unit})` : "";
 
-    let inputElement;
+    let input;
     switch (type) {
       case "input":
-        inputElement = (
-          <InputField
-            label={labelText}
-            value={value}
-            onChange={(e) => handleChange(name, e.target.value)}
-            type="text"
-            maxLength={maxLength}
-            required={required}
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          />
+        input = (
+          <>
+            <label className="fr-label">
+              {name}
+              {unitLabel}
+              {required && <span className="fr-label-req">*</span>}
+            </label>
+            <input
+              className="fr-input"
+              type="text"
+              value={value}
+              maxLength={maxLength}
+              required={required}
+              onChange={(e) => handleChange(name, e.target.value)}
+            />
+          </>
         );
         break;
       case "textarea":
-        inputElement = (
-          <TextAreaField
-            label={labelText}
-            value={value}
-            onChange={(e) => handleChange(name, e.target.value)}
-            maxLength={maxLength}
-            required={required}
-            rows={4}
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          />
+        input = (
+          <>
+            <label className="fr-label">
+              {name}
+              {unitLabel}
+              {required && <span className="fr-label-req">*</span>}
+            </label>
+            <textarea
+              className="fr-textarea"
+              value={value}
+              maxLength={maxLength}
+              required={required}
+              onChange={(e) => handleChange(name, e.target.value)}
+            />
+          </>
         );
         break;
       case "select":
-        inputElement = (
-          <SelectField
-            label={labelText}
-            value={value}
-            onChange={(e) => handleChange(name, e.target.value)}
-            options={options.map((opt) => ({ value: opt, label: opt }))}
-            placeholder="Select an option"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          />
+        input = (
+          <>
+            <label className="fr-label">
+              {name}
+              {unitLabel}
+              {required && <span className="fr-label-req">*</span>}
+            </label>
+            <select
+              className="fr-select"
+              value={value}
+              required={required}
+              onChange={(e) => handleChange(name, e.target.value)}
+            >
+              <option value="">Select an option</option>
+              {options.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </>
         );
         break;
       case "radio":
-        inputElement = (
-          <div className="space-y-3">
-            <label className="block mb-3 text-sm font-medium text-gray-700">
-              {name} {required && <span className="text-rose-500">*</span>}
-            </label>
-            {options.map((opt) => (
-              <label key={opt} className="flex items-center space-x-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="radio"
-                    name={name}
-                    value={opt}
-                    checked={value === opt}
-                    onChange={(e) => handleChange(name, e.target.value)}
-                    required={required}
-                    className="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-2 focus:ring-blue-500 rounded-full appearance-none checked:border-blue-600"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div
-                      className={`w-2 h-2 rounded-full bg-blue-600 scale-0 transition ${
-                        value === opt ? "scale-100" : ""
-                      }`}
-                    />
+        input = (
+          <>
+            <span className="fr-options-label">
+              {name}
+              {required && <span className="fr-label-req">*</span>}
+            </span>
+            <div className="fr-options">
+              {options.map((opt) => (
+                <label
+                  key={opt}
+                  className={`fr-option${value === opt ? " selected" : ""}`}
+                  onClick={() => handleChange(name, opt)}
+                >
+                  <div className="fr-option-ctrl radio">
+                    <div className="fr-option-ctrl-dot" />
                   </div>
-                </div>
-                <span className="text-gray-700 group-hover:text-gray-900">{opt}</span>
-              </label>
-            ))}
-          </div>
+                  {opt}
+                </label>
+              ))}
+            </div>
+          </>
         );
         break;
       case "checkbox":
-        inputElement = (
-          <div className="space-y-3">
-            <label className="block mb-3 text-sm font-medium text-gray-700">
-              {name} {required && <span className="text-rose-500">*</span>}
-            </label>
-            {options.map((opt) => (
-              <label key={opt} className="flex items-center space-x-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    value={opt}
-                    checked={value.includes(opt)}
-                    onChange={(e) => handleChange(name, opt, true)}
-                    className="w-5 h-5 text-blue-600 border-2 border-gray-300 focus:ring-2 focus:ring-blue-500 rounded-md appearance-none checked:bg-blue-600"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <svg
-                      className={`w-3 h-3 text-white scale-0 transition ${value.includes(opt) ? "scale-100" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+        input = (
+          <>
+            <span className="fr-options-label">
+              {name}
+              {required && <span className="fr-label-req">*</span>}
+            </span>
+            <div className="fr-options">
+              {options.map((opt) => (
+                <label
+                  key={opt}
+                  className={`fr-option${value.includes(opt) ? " selected" : ""}`}
+                  onClick={() => handleChange(name, opt, true)}
+                >
+                  <div className="fr-option-ctrl checkbox">
+                    <span className="fr-option-ctrl-check">
+                      <IconCheck />
+                    </span>
                   </div>
-                </div>
-                <span className="text-gray-700 group-hover:text-gray-900">{opt}</span>
-              </label>
-            ))}
-          </div>
+                  {opt}
+                </label>
+              ))}
+            </div>
+          </>
         );
         break;
       case "number":
-        inputElement = (
-          <InputField
-            label={labelText}
-            value={value}
-            onChange={(e) => handleChange(name, e.target.value)}
-            type="number"
-            required={required}
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          />
+        input = (
+          <>
+            <label className="fr-label">
+              {name}
+              {unitLabel}
+              {required && <span className="fr-label-req">*</span>}
+            </label>
+            <input
+              className="fr-input"
+              type="number"
+              value={value}
+              required={required}
+              onChange={(e) => handleChange(name, e.target.value)}
+            />
+          </>
         );
         break;
       default:
@@ -312,196 +683,177 @@ const FormRenderer = () => {
     }
 
     return (
-      <div key={name} className="mb-8 last:mb-0">
-        {inputElement}
+      <div key={name} className="fr-field">
+        {input}
         {range && (
-          <p className="text-xs text-gray-500 mt-2 flex items-center">
-            <svg className="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Standard range{range.info && ` ${range.info}`}: {range.min} - {range.max} {unit}
-          </p>
+          <div className="fr-range-info">
+            <IconInfo />
+            <span>
+              Normal{range.info ? ` ${range.info}` : ""}:{" "}
+              <strong>
+                {range.min}–{range.max}
+              </strong>
+              {unit ? ` ${unit}` : ""}
+            </span>
+            {status && getStatusTag(status)}
+          </div>
         )}
-        {status && <div className="mt-2">{getStatusIcon(status)}</div>}
+        {status && !range && <div style={{ marginTop: 8 }}>{getStatusTag(status)}</div>}
       </div>
     );
   };
 
-  if (loading) {
-    return (
-      <LoadingScreen/>
-    );
-  }
+  // ── Guards ──────────────────────────────────────────────────────────────────
+  if (loading) return <LoadingScreen />;
 
   if (!schema) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-lg text-center max-w-md">
-          <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+      <div className="fr-root">
+        <StyleInjector />
+        <div className="fr-empty">
+          <div className="fr-empty-card">
+            <div className="fr-empty-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="1.5">
+                <path
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <p className="fr-empty-title">Form Not Found</p>
+            <p className="fr-empty-text">Unable to load the form schema. Please try again later.</p>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Form Not Found</h3>
-          <p className="text-gray-600">Unable to load the form schema. Please try again later.</p>
         </div>
       </div>
     );
   }
 
+  const completedCount = Object.keys(formData).length;
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="fr-root">
+      <StyleInjector />
+      <div className="fr-shell">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="fr-header">
+          <div className="fr-breadcrumb">
+            <span>Forms</span>
+            <div className="fr-breadcrumb-dot" />
+            <span>{schema.name || "Medical Form"}</span>
+          </div>
+          <h1 className="fr-title">{schema.name || "Medical Form"}</h1>
+          {schema.description && <p className="fr-subtitle">{schema.description}</p>}
+          <div className="fr-header-meta">
+            <span className="fr-badge">
+              <div className="fr-badge-dot" /> Active
+            </span>
+            <span className="fr-badge">
+              {schema.sections?.length || 1} {schema.sections?.length === 1 ? "Section" : "Sections"}
+            </span>
+          </div>
+        </div>
+
+        {/* Static reference range */}
+        {schema.hasStaticStandardRange && schema.staticStandardRange && (
+          <div className="fr-static-range" style={{ marginBottom: 20 }}>
+            <div className="fr-static-range-title">Reference Values</div>
+            {schema.staticStandardRange}
+          </div>
+        )}
+
+        {/* Patient card */}
+        <div className="fr-card" style={{ marginBottom: 16 }}>
+          <div className="fr-card-header">
+            <div className="fr-card-icon">
+              <IconUser />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{schema.name || "Medical Form"}</h1>
-              {schema.description && <p className="text-lg text-gray-600 mt-2">{schema.description}</p>}
-              <p className="text-gray-600 mt-2">Please fill in all required fields marked with *</p>
+              <p className="fr-card-title">Patient Information</p>
+              <p className="fr-card-desc">Required for accurate range calculations</p>
             </div>
-            
           </div>
-
-          {/* Static Reference Values */}
-          {schema.hasStaticStandardRange && schema.staticStandardRange && (
-            <div className="mb-8 p-6 bg-blue-50 rounded-2xl border border-blue-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Reference Values</h3>
-              <p className="text-gray-700 whitespace-pre-line">{schema.staticStandardRange}</p>
+          <div className="fr-card-body">
+            <div className="fr-grid-2">
+              <div className="fr-field" style={{ marginBottom: 0 }}>
+                <label className="fr-label">
+                  Gender <span className="fr-label-req">*</span>
+                </label>
+                <select className="fr-select" value={gender} onChange={(e) => setGender(e.target.value)}>
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="fr-field" style={{ marginBottom: 0 }}>
+                <label className="fr-label">
+                  Age <span className="fr-label-req">*</span>
+                </label>
+                <input
+                  className="fr-input"
+                  type="number"
+                  placeholder="Enter age"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                />
+              </div>
             </div>
-          )}
+            <div className="fr-notice">
+              <IconInfo />
+              <span>Gender and age determine which reference ranges are shown alongside each measurement.</span>
+            </div>
+          </div>
+        </div>
 
-          {/* Progress Bar */}
+        {/* Form sections card */}
+        <div className="fr-card">
+          {/* Section tabs */}
           {hasMultipleSections && (
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-2">
-                {schema.sections.map((section, index) => (
-                  <button
-                    key={section.name}
-                    onClick={() => setActiveSection(index)}
-                    className={`flex-1 text-center py-3 font-medium transition-all duration-200 ${
-                      activeSection === index
-                        ? "text-blue-600 border-b-2 border-blue-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    {section.name}
-                  </button>
-                ))}
-              </div>
-              <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 transition-all duration-300"
-                  style={{ width: `${((activeSection + 1) / schema.sections.length) * 100}%` }}
-                />
-              </div>
+            <div className="fr-tabs">
+              {schema.sections.map((section, idx) => (
+                <button
+                  key={section.name}
+                  className={`fr-tab${activeSection === idx ? " active" : ""}`}
+                  onClick={() => setActiveSection(idx)}
+                >
+                  <span className="fr-tab-num">{idx + 1}</span>
+                  {section.name}
+                </button>
+              ))}
             </div>
           )}
-        </div>
 
-        {/* Patient Details Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mr-4">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Patient Information</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SelectField
-              label="Gender *"
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-              options={[
-                { value: "", label: "Select Gender" },
-                { value: "male", label: "Male" },
-                { value: "female", label: "Female" },
-                { value: "other", label: "Other" },
-              ]}
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-            />
-            <InputField
-              label="Age *"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              type="number"
-              placeholder="Enter age"
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-            />
-          </div>
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <p className="text-sm text-blue-700 flex items-center">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Gender and age are required for accurate range calculations
-            </p>
-          </div>
-        </div>
-
-        {/* Form Sections */}
-        <div className="space-y-6">
-          {schema.sections.map((section, sectionIndex) => (
+          {/* Section bodies */}
+          {schema.sections.map((section, sectionIdx) => (
             <div
               key={section.name}
-              className={`bg-white rounded-2xl shadow-lg p-6 border border-gray-100 transition-all duration-300 ${
-                hasMultipleSections && activeSection !== sectionIndex ? "opacity-60 pointer-events-none" : ""
-              }`}
+              className={`fr-section-body${hasMultipleSections && activeSection !== sectionIdx ? " fr-section-inactive" : ""}`}
+              style={hasMultipleSections && activeSection !== sectionIdx ? { display: "none" } : {}}
             >
-              {hasMultipleSections && (
-                <div className="flex items-center mb-6">
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-sm font-semibold text-gray-700">{sectionIndex + 1}</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">{section.name}</h3>
-                </div>
-              )}
-              <div className="space-y-8">{(section.fields || []).map(renderField)}</div>
+              {(section.fields || []).map(renderField)}
             </div>
           ))}
-        </div>
 
-        {/* Form Actions */}
-        <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">{Object.keys(formData).length}</span> fields completed
-            </div>
-            <div className="flex space-x-4">
-              <button
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all duration-200"
-                onClick={() => setFormData({})}
-              >
-                Clear All
+          {/* Footer */}
+          <div className="fr-footer">
+            <p className="fr-progress-text">
+              <strong>{completedCount}</strong> {completedCount === 1 ? "field" : "fields"} completed
+            </p>
+            <div className="fr-footer-actions">
+              <button className="fr-btn fr-btn-ghost" onClick={() => setFormData({})}>
+                Clear all
               </button>
-              <button
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                onClick={() => console.log("Submit:", formData)}
-              >
-                Submit Form
-              </button>
+              {hasMultipleSections && activeSection < schema.sections.length - 1 ? (
+                <button className="fr-btn fr-btn-primary" onClick={() => setActiveSection(activeSection + 1)}>
+                  Continue <IconArrow />
+                </button>
+              ) : (
+                <button className="fr-btn fr-btn-primary" onClick={() => console.log("Submit:", formData)}>
+                  Submit form <IconArrow />
+                </button>
+              )}
             </div>
           </div>
         </div>
