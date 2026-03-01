@@ -904,7 +904,7 @@ export default function SchemaBuilder() {
               <p className="text-xs text-gray-400 mt-0.5">
                 {schema.testId
                   ? `Test · ${tests.find((t) => t._id === schema.testId)?.name || "—"}`
-                  : "Select a test to get started"}
+                  : ""}
               </p>
             </div>
           </div>
