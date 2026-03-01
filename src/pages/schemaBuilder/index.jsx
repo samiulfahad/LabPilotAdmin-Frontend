@@ -745,7 +745,7 @@ function SectionCard({ section, index, total, fieldErrors }) {
   );
 }
 
-import SchemaRenderer from "./schemaRenderer";
+import SchemaRenderer from "./SchemaRenderer";
 
 function SkeletonLoader() {
   return (
