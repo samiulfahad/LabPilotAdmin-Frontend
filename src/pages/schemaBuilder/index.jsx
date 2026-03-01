@@ -1072,7 +1072,7 @@ export default function SchemaBuilder() {
                 </button>
               </div>
               {activeTab === "preview" && (
-                <span className="text-xs text-gray-400 italic">Live preview — changes reflect instantly</span>
+                <span className="text-xs text-gray-400 italic">Live preview</span>
               )}
               {activeTab === "builder" && (
                 <details className="relative group">
