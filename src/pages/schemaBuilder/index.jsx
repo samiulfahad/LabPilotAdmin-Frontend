@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { create } from "zustand";
 import {
   Plus,
@@ -744,7 +745,7 @@ function SectionCard({ section, index, total, fieldErrors }) {
   );
 }
 
-import SchemaRenderer from "./SchemaRenderer";
+import SchemaRenderer from "./schemaRenderer";
 
 function SkeletonLoader() {
   return (
@@ -776,9 +777,16 @@ export default function SchemaBuilder() {
     setErrors,
     setFieldErrors,
   } = useSchemaStore();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [toast, setToast] = useState(null); // { type: "success"|"error", message }
   const [activeTab, setActiveTab] = useState("builder"); // "builder" | "preview"
+
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // Mock API call
   useEffect(() => {
@@ -821,9 +829,12 @@ export default function SchemaBuilder() {
     }
     if (Object.keys(errs).length > 0 || hasFieldErrors) return;
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
     setSaving(false);
     setSaved(true);
+    showToast("success", "Schema saved successfully");
+    // Stay on page — modern pattern: show success state, don't redirect
+    // User can navigate back manually via breadcrumb/back button
     setTimeout(() => setSaved(false), 3000);
     console.log("Schema saved:", JSON.stringify(schema, null, 2));
   };
@@ -846,53 +857,98 @@ export default function SchemaBuilder() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Page Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Schema Builder</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Design and configure form schemas for lab tests</p>
-          </div>
+      <style>{`@keyframes slideInRight { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: translateX(0); } }`}</style>
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-medium transition-all border ${
+            toast.type === "success"
+              ? "bg-white border-emerald-200 text-emerald-700"
+              : "bg-white border-red-200 text-red-600"
+          }`}
+          style={{ animation: "slideInRight 0.25s ease" }}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+          ) : (
+            <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          )}
+          {toast.message}
         </div>
-        <div className="flex items-center gap-3">
-          {/* Status toggle */}
-          <button
-            onClick={() => setSchemaField("isActive", !schema.isActive)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-              schema.isActive
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                : "bg-gray-50 border-gray-200 text-gray-500"
-            }`}
-          >
-            {schema.isActive ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" /> Active
-              </>
-            ) : (
-              <>
-                <XCircle className="w-4 h-4" /> Inactive
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm ${
-              saved ? "bg-emerald-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
-            } disabled:opacity-60`}
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : saved ? (
-              <CheckCircle2 className="w-4 h-4" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {saving ? "Saving..." : saved ? "Saved!" : "Save Schema"}
-          </button>
+      )}
+
+      {/* Breadcrumb + page title */}
+      <div className="mb-6">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
+          <Link to="/schema-list" className="hover:text-blue-600 transition-colors">
+            Schemas
+          </Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-gray-600 font-medium">{schema.name || "New Schema"}</span>
+        </div>
+
+        <div className="flex items-start justify-between gap-4">
+          {/* Left: back + title */}
+          <div className="flex items-center gap-3">
+            <Link
+              to="/schema-list"
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-700 flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                {schema.name || <span className="text-gray-400 font-normal italic">New Schema</span>}
+              </h1>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {schema.testId
+                  ? `Test · ${tests.find((t) => t._id === schema.testId)?.name || "—"}`
+                  : "Select a test to get started"}
+              </p>
+            </div>
+          </div>
+
+          {/* Right: active toggle + save */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Active toggle — pill switch style */}
+            <button
+              onClick={() => setSchemaField("isActive", !schema.isActive)}
+              className={`relative flex items-center gap-2 pl-3 pr-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                schema.isActive
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                  : "bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100"
+              }`}
+            >
+              <span
+                className={`w-7 h-4 rounded-full flex-shrink-0 transition-colors relative ${schema.isActive ? "bg-emerald-400" : "bg-gray-300"}`}
+              >
+                <span
+                  className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${schema.isActive ? "left-3.5" : "left-0.5"}`}
+                />
+              </span>
+              {schema.isActive ? "Active" : "Inactive"}
+            </button>
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm border ${
+                saved
+                  ? "bg-emerald-500 border-emerald-500 text-white"
+                  : "bg-blue-600 border-blue-600 hover:bg-blue-700 text-white"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : saved ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {saving ? "Saving…" : saved ? "Saved!" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1060,27 +1116,40 @@ export default function SchemaBuilder() {
             )}
           </div>
 
-          {/* Bottom save bar */}
-          <div className="flex items-center justify-end gap-3 pt-2 pb-4">
-            <button className="px-5 py-2.5 text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors">
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm ${
-                saved ? "bg-emerald-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
-              } disabled:opacity-60`}
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : saved ? (
-                <CheckCircle2 className="w-4 h-4" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saving ? "Saving..." : saved ? "Saved!" : "Save Schema"}
-            </button>
+          {/* Sticky bottom action bar */}
+          <div className="sticky bottom-0 -mx-4 px-4 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">
+            <div className="flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-lg shadow-gray-100">
+              <Link
+                to="/schema-list"
+                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Schemas
+              </Link>
+              <div className="flex items-center gap-3">
+                {saved && (
+                  <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> All changes saved
+                  </span>
+                )}
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    saved ? "bg-emerald-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
+                  } disabled:opacity-50`}
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : saved ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saving ? "Saving…" : saved ? "Saved!" : "Save Schema"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
