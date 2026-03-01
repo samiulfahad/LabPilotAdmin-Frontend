@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { create } from "zustand";
 import {
   Plus,
@@ -42,10 +42,11 @@ const useSchemaStore = create((set, get) => ({
     sections: [{ id: Date.now(), name: "Section A", fields: [] }],
   },
   errors: {},
-  fieldErrors: {}, // { [fieldId]: errorMessage }
+  fieldErrors: {},
 
   setTests: (tests) => set({ tests, loadingTests: false }),
   setLoadingTests: (v) => set({ loadingTests: v }),
+  setSchema: (schema) => set({ schema }),
   setSchemaField: (key, value) =>
     set((s) => ({ schema: { ...s.schema, [key]: value }, errors: { ...s.errors, [key]: undefined } })),
   setErrors: (errors) => set({ errors }),
@@ -125,7 +126,6 @@ const useSchemaStore = create((set, get) => ({
             : sec,
         ),
       },
-      // Clear field name error when user types
       fieldErrors: key === "name" ? { ...s.fieldErrors, [fieldId]: undefined } : s.fieldErrors,
     })),
 
@@ -474,7 +474,6 @@ function FieldCard({ field, sectionId, fieldError }) {
   const { updateField, removeField, updateFieldStandardRange } = useSchemaStore();
   const Icon = fieldTypeIcon(field.type);
 
-  // Auto-expand if there's a validation error
   useEffect(() => {
     if (fieldError) setExpanded(true);
   }, [fieldError]);
@@ -487,7 +486,6 @@ function FieldCard({ field, sectionId, fieldError }) {
     <div
       className={`border rounded-xl overflow-hidden transition-all hover:shadow-sm ${fieldError ? "border-red-300 ring-1 ring-red-200" : "border-gray-200 hover:border-gray-300"}`}
     >
-      {/* Field Header */}
       <div
         className={`flex items-center gap-3 px-4 py-3 cursor-pointer select-none transition-colors ${expanded ? "bg-white" : fieldError ? "bg-red-50" : "bg-gray-50"}`}
         onClick={() => setExpanded(!expanded)}
@@ -528,7 +526,6 @@ function FieldCard({ field, sectionId, fieldError }) {
         </div>
       </div>
 
-      {/* Field Body */}
       {expanded && (
         <div className="p-4 border-t border-gray-100 bg-white space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -584,7 +581,6 @@ function FieldCard({ field, sectionId, fieldError }) {
             </button>
           </div>
 
-          {/* Number specific */}
           {isNumberType && (
             <div className="space-y-4 p-4 bg-violet-50/50 rounded-xl border border-violet-100">
               <div className="grid grid-cols-2 gap-4">
@@ -646,7 +642,6 @@ function FieldCard({ field, sectionId, fieldError }) {
             </div>
           )}
 
-          {/* Options */}
           {isOptionType && (
             <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
               <label className="text-xs font-medium text-gray-600 block mb-2">Options</label>
@@ -657,7 +652,6 @@ function FieldCard({ field, sectionId, fieldError }) {
             </div>
           )}
 
-          {/* Text max length */}
           {isTextType && (
             <div className="w-40">
               <label className="text-xs font-medium text-gray-600 block mb-1.5">Max Length</label>
@@ -682,7 +676,6 @@ function SectionCard({ section, index, total, fieldErrors }) {
 
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-      {/* Section Header */}
       <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
         <div
           className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${hasSectionError ? "bg-red-500" : "bg-blue-500"}`}
@@ -716,7 +709,6 @@ function SectionCard({ section, index, total, fieldErrors }) {
         </div>
       </div>
 
-      {/* Section Body */}
       {expanded && (
         <div className="p-5 space-y-3 bg-white">
           {section.fields.length === 0 ? (
@@ -746,6 +738,8 @@ function SectionCard({ section, index, total, fieldErrors }) {
 }
 
 import SchemaRenderer from "./SchemaRenderer";
+import schemaService from "../../services/schemaService";
+import testService from "../../services/testService";
 
 function SkeletonLoader() {
   return (
@@ -762,6 +756,23 @@ function SkeletonLoader() {
   );
 }
 
+// ─── Helpers to normalize API schema → store schema ──────────────────────────
+// When loading from API, sections/fields may not have local `id` fields.
+// We inject them so the builder UI can track items by id.
+function normalizeSchema(apiSchema) {
+  return {
+    ...apiSchema,
+    sections: (apiSchema.sections || []).map((sec) => ({
+      ...sec,
+      id: sec.id ?? sec._id ?? Date.now() + Math.random(),
+      fields: (sec.fields || []).map((f) => ({
+        ...f,
+        id: f.id ?? f._id ?? Date.now() + Math.random(),
+      })),
+    })),
+  };
+}
+
 // ─── Main SchemaBuilder ───────────────────────────────────────────────────────
 export default function SchemaBuilder() {
   const {
@@ -772,45 +783,78 @@ export default function SchemaBuilder() {
     fieldErrors,
     setTests,
     setLoadingTests,
+    setSchema,
     setSchemaField,
     addSection,
     setErrors,
     setFieldErrors,
   } = useSchemaStore();
+
   const navigate = useNavigate();
+
+  // Detect edit mode via URL param — e.g. /schema/:schemaId
+  // If no schemaId param, we're in create mode.
+  const { schemaId } = useParams();
+  const isEditMode = Boolean(schemaId);
+
+  const [loadingSchema, setLoadingSchema] = useState(isEditMode);
+  const [loadError, setLoadError] = useState(null); // error loading schema in edit mode
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState(null); // { type: "success"|"error", message }
-  const [activeTab, setActiveTab] = useState("builder"); // "builder" | "preview"
+  const [activeTab, setActiveTab] = useState("builder");
 
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Mock API call
+  // ── Load tests ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    setLoadingTests(true);
-    setTimeout(() => {
-      setTests([
-        { _id: "69a444ab8789843e16ec5eeb", name: "CBC", categoryId: "69a444868789843e16ec5ee8", schemaId: null },
-        { _id: "69a444b68789843e16ec5eec", name: "RBC", categoryId: "69a444868789843e16ec5ee8", schemaId: null },
-        { _id: "69a444e28789843e16ec5eed", name: "HEPATITIS", categoryId: "69a444868789843e16ec5ee8", schemaId: null },
-        { _id: "69a444f18789843e16ec5eee", name: "KNEE", categoryId: "69a444918789843e16ec5ee9", schemaId: null },
-        { _id: "69a445008789843e16ec5eef", name: "OPG", categoryId: "69a444918789843e16ec5ee9", schemaId: null },
-        { _id: "69a445118789843e16ec5ef0", name: "UT 1", categoryId: "69a4449d8789843e16ec5eea", schemaId: null },
-        { _id: "69a4451e8789843e16ec5ef1", name: "UT 2", categoryId: "69a4449d8789843e16ec5eea", schemaId: null },
-      ]);
-    }, 1200);
+    const loadTests = async () => {
+      setLoadingTests(true);
+      try {
+        const response = await testService.getTestList();
+        setTests(response.data);
+      } catch (e) {
+        console.error("Failed to load test list:", e);
+        // Non-fatal — show empty dropdown, user can retry via page refresh
+        setTests([]);
+      }
+    };
+    loadTests();
   }, []);
 
+  // ── Load existing schema (edit mode) ───────────────────────────────────────
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const loadSchema = async () => {
+      setLoadingSchema(true);
+      setLoadError(null);
+      try {
+        const response = await schemaService.getById(schemaId);
+        const normalized = normalizeSchema(response.data);
+        setSchema(normalized);
+      } catch (e) {
+        console.error("Failed to load schema:", e);
+        const message = e?.response?.data?.message || e?.message || "Failed to load schema. Please try again.";
+        setLoadError(message);
+      } finally {
+        setLoadingSchema(false);
+      }
+    };
+    loadSchema();
+  }, [schemaId]);
+
+  // ── Validation ──────────────────────────────────────────────────────────────
   const validate = () => {
     const errs = {};
     if (!schema.testId) errs.testId = "Please select a test";
     if (!schema.name.trim()) errs.name = "Schema name is required";
     if (!schema.description.trim()) errs.description = "Description is required";
 
-    // Validate all field names
     const fErrs = {};
     schema.sections.forEach((sec) => {
       sec.fields.forEach((f) => {
@@ -822,44 +866,70 @@ export default function SchemaBuilder() {
     return { errs, hasFieldErrors: Object.keys(fErrs).length > 0 };
   };
 
+  // ── Serialize (strip UI-only ids before sending to API) ─────────────────────
+  const getOutput = () => ({
+    name: schema.name,
+    description: schema.description,
+    testId: schema.testId,
+    isActive: schema.isActive,
+    hasStaticStandardRange: schema.hasStaticStandardRange,
+    staticStandardRange: schema.staticStandardRange,
+    sections: schema.sections.map(({ id, ...sec }) => ({
+      ...sec,
+      fields: sec.fields.map(({ id, ...f }) => f),
+    })),
+  });
+
+  // ── Save (create or update) ─────────────────────────────────────────────────
   const handleSave = async () => {
     const { errs, hasFieldErrors } = validate();
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-    }
+    if (Object.keys(errs).length > 0) setErrors(errs);
     if (Object.keys(errs).length > 0 || hasFieldErrors) return;
+
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSaving(false);
-    setSaved(true);
-    showToast("success", "Schema saved successfully");
-    // Stay on page — modern pattern: show success state, don't redirect
-    // User can navigate back manually via breadcrumb/back button
-    setTimeout(() => setSaved(false), 3000);
-    console.log("Schema saved:", JSON.stringify(schema, null, 2));
+    const payload = getOutput();
+
+    try {
+      if (isEditMode) {
+        // ── UPDATE ──────────────────────────────────────────────────────────
+        await schemaService.update(schemaId, payload);
+        showToast("success", "Schema updated successfully");
+      } else {
+        // ── CREATE ──────────────────────────────────────────────────────────
+        const response = await schemaService.addNew(payload);
+        showToast("success", "Schema saved successfully");
+        // Optionally redirect to edit mode with the new id so subsequent
+        // saves hit the update endpoint instead of creating duplicates.
+        const newId = response?.data?._id;
+        if (newId) {
+          // Replace current history entry so the back button still works
+          navigate(`/schema/${newId}`, { replace: true });
+        }
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error("Save failed:", e);
+      const message =
+        e?.response?.data?.message ||
+        e?.response?.data?.error ||
+        e?.message ||
+        "Something went wrong. Please try again.";
+      showToast("error", message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Serialize output (strip UI ids)
-  const getOutput = () => {
-    return {
-      name: schema.name,
-      description: schema.description,
-      testId: schema.testId,
-      isActive: schema.isActive,
-      hasStaticStandardRange: schema.hasStaticStandardRange,
-      staticStandardRange: schema.staticStandardRange,
-      sections: schema.sections.map(({ id, ...sec }) => ({
-        ...sec,
-        fields: sec.fields.map(({ id, ...f }) => f),
-      })),
-    };
-  };
+  // ── Render ──────────────────────────────────────────────────────────────────
+  const isLoading = loadingTests || loadingSchema;
 
   return (
     <div className="max-w-4xl mx-auto">
       <style>{`@keyframes slideInRight { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: translateX(0); } }`}</style>
 
-      {/* Toast notification */}
+      {/* Toast */}
       {toast && (
         <div
           className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-medium transition-all border ${
@@ -885,11 +955,12 @@ export default function SchemaBuilder() {
             Schemas
           </Link>
           <ChevronRight className="w-3 h-3" />
-          <span className="text-gray-600 font-medium">{schema.name || "New Schema"}</span>
+          <span className="text-gray-600 font-medium">
+            {schema.name || (isEditMode ? "Edit Schema" : "New Schema")}
+          </span>
         </div>
 
         <div className="flex items-start justify-between gap-4">
-          {/* Left: back + title */}
           <div className="flex items-center gap-3">
             <Link
               to="/schema-list"
@@ -898,20 +969,23 @@ export default function SchemaBuilder() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {schema.name || <span className="text-gray-400 font-normal italic">New Schema</span>}
+              <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                {schema.name || (
+                  <span className="text-gray-400 font-normal italic">{isEditMode ? "Edit Schema" : "New Schema"}</span>
+                )}
+                {isEditMode && (
+                  <span className="text-xs font-normal px-2 py-0.5 bg-blue-50 text-blue-500 rounded-full border border-blue-100">
+                    Editing
+                  </span>
+                )}
               </h1>
               <p className="text-xs text-gray-400 mt-0.5">
-                {schema.testId
-                  ? `Test · ${tests.find((t) => t._id === schema.testId)?.name || "—"}`
-                  : ""}
+                {schema.testId ? `Test · ${tests.find((t) => t._id === schema.testId)?.name || "—"}` : ""}
               </p>
             </div>
           </div>
 
-          {/* Right: active toggle + save */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Active toggle — pill switch style */}
             <button
               onClick={() => setSchemaField("isActive", !schema.isActive)}
               className={`relative flex items-center gap-2 pl-3 pr-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
@@ -932,7 +1006,7 @@ export default function SchemaBuilder() {
 
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || isLoading}
               className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm border ${
                 saved
                   ? "bg-emerald-500 border-emerald-500 text-white"
@@ -946,13 +1020,24 @@ export default function SchemaBuilder() {
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              {saving ? "Saving…" : saved ? "Saved!" : "Save"}
+              {saving ? "Saving…" : saved ? "Saved!" : isEditMode ? "Update" : "Save"}
             </button>
           </div>
         </div>
       </div>
 
-      {loadingTests ? (
+      {/* Schema load error banner (edit mode) */}
+      {loadError && (
+        <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <XCircle className="w-4 h-4 flex-shrink-0 text-red-500" />
+          <span className="flex-1">{loadError}</span>
+          <button onClick={() => window.location.reload()} className="text-xs font-medium underline hover:no-underline">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {isLoading ? (
         <SkeletonLoader />
       ) : (
         <div className="space-y-6">
@@ -1047,9 +1132,8 @@ export default function SchemaBuilder() {
             </div>
           </div>
 
-          {/* Form Preview Panel */}
+          {/* Builder / Preview */}
           <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-            {/* Tab header */}
             <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
               <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
                 <button
@@ -1071,9 +1155,7 @@ export default function SchemaBuilder() {
                   Form Preview
                 </button>
               </div>
-              {activeTab === "preview" && (
-                <span className="text-xs text-gray-400 italic">Live preview</span>
-              )}
+              {activeTab === "preview" && <span className="text-xs text-gray-400 italic">Live preview</span>}
               {activeTab === "builder" && (
                 <details className="relative group">
                   <summary className="list-none flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 cursor-pointer select-none transition-colors">
@@ -1089,7 +1171,6 @@ export default function SchemaBuilder() {
               )}
             </div>
 
-            {/* Tab body */}
             {activeTab === "builder" ? (
               <div className="px-5 py-5 space-y-4">
                 {schema.sections.map((section, i) => (
@@ -1116,7 +1197,7 @@ export default function SchemaBuilder() {
             )}
           </div>
 
-          {/* Sticky bottom action bar */}
+          {/* Sticky bottom bar */}
           <div className="sticky bottom-0 -mx-4 px-4 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">
             <div className="flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-lg shadow-gray-100">
               <Link
@@ -1134,7 +1215,7 @@ export default function SchemaBuilder() {
                 )}
                 <button
                   onClick={handleSave}
-                  disabled={saving}
+                  disabled={saving || isLoading}
                   className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-semibold transition-all ${
                     saved ? "bg-emerald-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
                   } disabled:opacity-50`}
@@ -1146,7 +1227,7 @@ export default function SchemaBuilder() {
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  {saving ? "Saving…" : saved ? "Saved!" : "Save Schema"}
+                  {saving ? "Saving…" : saved ? "Saved!" : isEditMode ? "Update Schema" : "Save Schema"}
                 </button>
               </div>
             </div>

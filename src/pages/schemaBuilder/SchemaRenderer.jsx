@@ -13,6 +13,7 @@ import {
   Send,
   AlertTriangle,
   Eye,
+  Activity,
 } from "lucide-react";
 
 // ─── Range Logic ──────────────────────────────────────────────────────────────
@@ -48,52 +49,7 @@ export function getRangeStatus(value, range) {
   return "normal";
 }
 
-// ─── Shared UI Primitives ─────────────────────────────────────────────────────
-export function RangeBadge({ status, range, unit }) {
-  if (!range) return null;
-  const cfg = {
-    normal: {
-      bg: "bg-emerald-50",
-      border: "border-emerald-200",
-      text: "text-emerald-700",
-      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-      label: "Normal",
-    },
-    low: {
-      bg: "bg-blue-50",
-      border: "border-blue-200",
-      text: "text-blue-700",
-      icon: <TrendingDown className="w-3.5 h-3.5" />,
-      label: "Low",
-    },
-    high: {
-      bg: "bg-red-50",
-      border: "border-red-200",
-      text: "text-red-700",
-      icon: <TrendingUp className="w-3.5 h-3.5" />,
-      label: "High",
-    },
-    neutral: {
-      bg: "bg-gray-50",
-      border: "border-gray-200",
-      text: "text-gray-500",
-      icon: <Minus className="w-3.5 h-3.5" />,
-      label: `${range.min}\u2013${range.max}${unit ? " " + unit : ""}`,
-    },
-  };
-  const c = cfg[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.bg} ${c.border} ${c.text}`}
-    >
-      {c.icon}
-      {status === "neutral"
-        ? c.label
-        : `${c.label} \u00b7 ref: ${range.min}\u2013${range.max}${unit ? " " + unit : ""}`}
-    </span>
-  );
-}
-
+// ─── Range Info Tooltip ───────────────────────────────────────────────────────
 export function RangeInfoTooltip({ field }) {
   const [open, setOpen] = useState(false);
   const sr = field.standardRange;
@@ -103,95 +59,147 @@ export function RangeInfoTooltip({ field }) {
       <button
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
-        className="text-gray-300 hover:text-blue-400 transition-colors"
+        className="text-slate-300 hover:text-slate-500 transition-colors"
       >
         <Info className="w-3.5 h-3.5" />
       </button>
       {open && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 text-white text-xs rounded-xl p-3 shadow-2xl">
-          <p className="font-semibold mb-1.5 text-gray-200">Reference Ranges</p>
+        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-slate-900 text-white text-xs rounded-lg p-3 shadow-2xl border border-slate-700">
+          <p className="font-bold mb-2 text-slate-300 uppercase tracking-widest text-[10px]">Reference Ranges</p>
           {sr.type === "simple" && (
-            <p className="text-gray-400">
-              {sr.data.min} \u2013 {sr.data.max} {field.unit || ""}
+            <p className="text-slate-400">
+              {sr.data.min} – {sr.data.max} {field.unit || ""}
             </p>
           )}
           {sr.type === "age" &&
             Array.isArray(sr.data) &&
             sr.data.map((r, i) => (
-              <div key={i} className="text-gray-400 leading-5">
-                Age {r.minAge}\u2013{r.maxAge === 999 ? "\u221e" : r.maxAge}:{" "}
-                <span className="text-white">
-                  {r.minValue}\u2013{r.maxValue}
+              <div key={i} className="text-slate-400 leading-5">
+                Age {r.minAge}–{r.maxAge === 999 ? "∞" : r.maxAge}:{" "}
+                <span className="text-white font-medium">
+                  {r.minValue}–{r.maxValue}
                 </span>
               </div>
             ))}
           {sr.type === "gender" &&
             sr.data &&
             Object.entries(sr.data).map(([g, v]) => (
-              <div key={g} className="text-gray-400 leading-5 capitalize">
+              <div key={g} className="text-slate-400 leading-5 capitalize">
                 {g}:{" "}
-                <span className="text-white">
-                  {v.min}\u2013{v.max}
+                <span className="text-white font-medium">
+                  {v.min}–{v.max}
                 </span>
               </div>
             ))}
           {sr.type === "combined" &&
             Array.isArray(sr.data) &&
             sr.data.map((r, i) => (
-              <div key={i} className="text-gray-400 leading-5 capitalize">
-                {r.gender} {r.minAge}\u2013{r.maxAge === 999 ? "\u221e" : r.maxAge}yr:{" "}
-                <span className="text-white">
-                  {r.minValue}\u2013{r.maxValue}
+              <div key={i} className="text-slate-400 leading-5 capitalize">
+                {r.gender} {r.minAge}–{r.maxAge === 999 ? "∞" : r.maxAge}yr:{" "}
+                <span className="text-white font-medium">
+                  {r.minValue}–{r.maxValue}
                 </span>
               </div>
             ))}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
         </div>
       )}
     </div>
   );
 }
 
-// ─── Field Components ─────────────────────────────────────────────────────────
+// ─── Number Field ─────────────────────────────────────────────────────────────
 function NumberField({ field, value, onChange, error, patientAge, patientGender }) {
   const range = getStandardRange(field, patientAge, patientGender);
   const status = getRangeStatus(value, range);
+  const hasValue = value !== "" && value !== null && value !== undefined;
+
   const needsContext =
     ((field.standardRange?.type === "age" || field.standardRange?.type === "combined") && !patientAge) ||
     ((field.standardRange?.type === "gender" || field.standardRange?.type === "combined") && !patientGender);
-  const statusBorder = {
-    normal: "border-emerald-300 ring-2 ring-emerald-100",
-    low: "border-blue-300 ring-2 ring-blue-100",
-    high: "border-red-300 ring-2 ring-red-100",
-    neutral: "border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400",
-  };
+
+  const inputCls = error
+    ? "border-red-300 ring-2 ring-red-100 bg-red-50/30"
+    : hasValue
+      ? {
+          normal: "border-emerald-300 ring-2 ring-emerald-50",
+          low: "border-orange-400 ring-2 ring-orange-50",
+          high: "border-red-400 ring-2 ring-red-50",
+          neutral: "border-slate-200",
+        }[status]
+      : "border-slate-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-50";
+
+  const statusCfg =
+    hasValue && range
+      ? {
+          normal: {
+            cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+            icon: <CheckCircle2 className="w-3 h-3" />,
+            label: "Normal",
+          },
+          low: {
+            cls: "bg-orange-50 text-orange-700 border-orange-200",
+            icon: <TrendingDown className="w-3 h-3" />,
+            label: "Below Range",
+          },
+          high: {
+            cls: "bg-red-50 text-red-700 border-red-200",
+            icon: <TrendingUp className="w-3 h-3" />,
+            label: "Above Range",
+          },
+          neutral: {
+            cls: "bg-slate-50 text-slate-500 border-slate-200",
+            icon: <Minus className="w-3 h-3" />,
+            label: "—",
+          },
+        }[status]
+      : null;
+
   return (
     <div className="space-y-1.5">
-      <div className="relative flex items-center">
+      <div className={`relative flex items-center rounded-lg border transition-all bg-white ${inputCls}`}>
         <input
           type="number"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter value"
-          className={`w-full pl-3 pr-20 py-2.5 border rounded-xl text-sm transition-all outline-none bg-white ${
-            error ? "border-red-400 ring-2 ring-red-100" : statusBorder[status]
-          }`}
+          placeholder="—"
+          className="w-full pl-3.5 pr-2 py-2.5 text-sm bg-transparent outline-none text-slate-800 placeholder-slate-300 font-semibold"
         />
         {field.unit && (
-          <span className="absolute right-3 text-xs font-medium text-gray-400 pointer-events-none select-none">
+          <span className="absolute right-3 text-xs font-bold text-slate-400 pointer-events-none select-none uppercase tracking-wide">
             {field.unit}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <RangeBadge status={value !== "" ? status : "neutral"} range={range} unit={field.unit} />
+
+      {/* Range ref + status badge row */}
+      <div className="flex items-center gap-2 flex-wrap min-h-[18px]">
+        {range ? (
+          <span className="text-xs text-slate-400">
+            Std. Range:{" "}
+            <span className="text-slate-600 font-semibold">
+              {range.min} – {range.max}
+              {field.unit ? ` ${field.unit}` : ""}
+            </span>
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
+        {statusCfg && (
+          <span
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold border ${statusCfg.cls}`}
+          >
+            {statusCfg.icon}
+            {statusCfg.label}
+          </span>
+        )}
         <RangeInfoTooltip field={field} />
-        {needsContext && range === null && field.standardRange?.type !== "none" && (
-          <span className="text-xs text-amber-500 flex items-center gap-1">
+        {needsContext && !range && field.standardRange?.type !== "none" && (
+          <span className="text-xs text-amber-500 flex items-center gap-1 font-medium">
             <AlertTriangle className="w-3 h-3" />
             {!patientAge && (field.standardRange?.type === "age" || field.standardRange?.type === "combined")
-              ? "Enter patient age"
-              : "Select patient gender"}
+              ? "Enter age for range"
+              : "Select gender for range"}
           </span>
         )}
       </div>
@@ -199,6 +207,7 @@ function NumberField({ field, value, onChange, error, patientAge, patientGender 
   );
 }
 
+// ─── Radio Field ──────────────────────────────────────────────────────────────
 function RadioField({ options = [], value, onChange }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -207,15 +216,15 @@ function RadioField({ options = [], value, onChange }) {
           key={opt}
           type="button"
           onClick={() => onChange(value === opt ? "" : opt)}
-          className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
             value === opt
-              ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-              : "bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600"
+              ? "bg-slate-900 border-slate-900 text-white shadow-sm"
+              : "bg-white border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-800"
           }`}
         >
           <span
-            className={`inline-block w-3.5 h-3.5 rounded-full border-2 mr-2 align-middle transition-all ${value === opt ? "border-white bg-white" : "border-gray-300"}`}
-            style={{ boxShadow: value === opt ? "inset 0 0 0 3px #2563eb" : "none" }}
+            className={`inline-block w-3 h-3 rounded-full border-2 mr-2 align-middle transition-all ${value === opt ? "border-white bg-white" : "border-slate-300"}`}
+            style={{ boxShadow: value === opt ? "inset 0 0 0 2.5px #0f172a" : "none" }}
           />
           {opt}
         </button>
@@ -224,6 +233,7 @@ function RadioField({ options = [], value, onChange }) {
   );
 }
 
+// ─── Dropdown Field ───────────────────────────────────────────────────────────
 function DropdownField({ options = [], value, onChange }) {
   const [open, setOpen] = useState(false);
   return (
@@ -231,13 +241,15 @@ function DropdownField({ options = [], value, onChange }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`w-full flex items-center justify-between px-3 py-2.5 border rounded-xl text-sm transition-all bg-white ${open ? "border-blue-400 ring-2 ring-blue-100" : "border-gray-200 hover:border-gray-300"}`}
+        className={`w-full flex items-center justify-between px-3.5 py-2.5 border rounded-lg text-sm transition-all bg-white ${open ? "border-blue-400 ring-2 ring-blue-50" : "border-slate-200 hover:border-slate-300"}`}
       >
-        <span className={value ? "text-gray-800 font-medium" : "text-gray-400"}>{value || "Select an option..."}</span>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className={value ? "text-slate-800 font-semibold" : "text-slate-400"}>{value || "Select an option"}</span>
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {open && (
-        <div className="absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+        <div className="absolute z-30 top-full mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
           {options.map((opt) => (
             <button
               key={opt}
@@ -246,10 +258,10 @@ function DropdownField({ options = [], value, onChange }) {
                 onChange(opt);
                 setOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700 hover:bg-gray-50"}`}
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${value === opt ? "bg-slate-900 text-white font-medium" : "text-slate-700 hover:bg-slate-50"}`}
             >
               {opt}
-              {value === opt && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />}
+              {value === opt && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
             </button>
           ))}
         </div>
@@ -258,6 +270,7 @@ function DropdownField({ options = [], value, onChange }) {
   );
 }
 
+// ─── Checkbox Field ───────────────────────────────────────────────────────────
 function CheckboxField({ options = [], value = [], onChange }) {
   const toggle = (opt) => onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
   return (
@@ -269,21 +282,21 @@ function CheckboxField({ options = [], value = [], onChange }) {
             key={opt}
             type="button"
             onClick={() => toggle(opt)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
               checked
-                ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                : "bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600"
+                ? "bg-slate-900 border-slate-900 text-white shadow-sm"
+                : "bg-white border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-800"
             }`}
           >
             <span
-              className={`w-4 h-4 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? "bg-white border-white" : "border-gray-300"}`}
+              className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? "bg-white border-white" : "border-slate-300"}`}
             >
               {checked && (
-                <svg className="w-2.5 h-2.5 text-indigo-600" viewBox="0 0 10 8" fill="none">
+                <svg className="w-2 h-2 text-slate-900" viewBox="0 0 10 8" fill="none">
                   <path
                     d="M1 4L3.5 6.5L9 1"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
@@ -298,17 +311,18 @@ function CheckboxField({ options = [], value = [], onChange }) {
   );
 }
 
+// ─── Field Wrapper ────────────────────────────────────────────────────────────
 function FieldWrapper({ field, children, error }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center gap-1.5">
-        <label className="text-sm font-semibold text-gray-700">{field.name}</label>
-        {field.required && <span className="text-red-400 text-xs">*</span>}
+        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{field.name}</label>
+        {field.required && <span className="text-red-400 text-[10px] leading-none font-bold">*</span>}
       </div>
       {children}
       {error && (
-        <p className="text-xs text-red-500 flex items-center gap-1">
-          <XCircle className="w-3 h-3" />
+        <p className="text-xs text-red-500 flex items-center gap-1 font-medium">
+          <XCircle className="w-3 h-3 flex-shrink-0" />
           {error}
         </p>
       )}
@@ -316,104 +330,136 @@ function FieldWrapper({ field, children, error }) {
   );
 }
 
-function SectionPanel({ section, sectionIndex, values, onChange, errors, patientAge, patientGender }) {
+// ─── Section Panel ────────────────────────────────────────────────────────────
+function SectionPanel({ section, sectionIndex, values, onChange, errors, patientAge, patientGender, hideTitle }) {
   const [collapsed, setCollapsed] = useState(false);
+
+  const fieldCount = section.fields.length;
+  const filledCount = section.fields.filter((f) => {
+    const key = `${sectionIndex}_${f.name}`;
+    const v = values[key];
+    return Array.isArray(v) ? v.length > 0 : v !== "" && v !== undefined && v !== null;
+  }).length;
+  const hasError = section.fields.some((f) => errors[`${sectionIndex}_${f.name}`]);
+
+  const fieldsGrid = (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-5">
+      {section.fields.map((field) => {
+        const key = `${sectionIndex}_${field.name}`;
+        const val = values[key] ?? (field.type === "checkbox" ? [] : "");
+        const err = errors[key];
+        const spanFull = field.type === "textarea" || field.type === "checkbox" || field.type === "radio";
+        return (
+          <div
+            key={key}
+            className={spanFull ? "col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 2xl:col-span-6" : ""}
+          >
+            <FieldWrapper field={field} error={err}>
+              {field.type === "number" && (
+                <NumberField
+                  field={field}
+                  value={val}
+                  onChange={(v) => onChange(key, v)}
+                  error={err}
+                  patientAge={patientAge}
+                  patientGender={patientGender}
+                />
+              )}
+              {field.type === "radio" && (
+                <RadioField options={field.options} value={val} onChange={(v) => onChange(key, v)} />
+              )}
+              {field.type === "select" && (
+                <DropdownField options={field.options} value={val} onChange={(v) => onChange(key, v)} />
+              )}
+              {field.type === "checkbox" && (
+                <CheckboxField options={field.options} value={val} onChange={(v) => onChange(key, v)} />
+              )}
+              {field.type === "textarea" && (
+                <div>
+                  <textarea
+                    value={val}
+                    onChange={(e) => onChange(key, e.target.value)}
+                    maxLength={field.maxLength}
+                    rows={3}
+                    placeholder="Enter notes..."
+                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm resize-none outline-none transition-all text-slate-800 placeholder-slate-300 bg-white ${
+                      err
+                        ? "border-red-300 ring-2 ring-red-50"
+                        : "border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                    }`}
+                  />
+                  <p className="text-xs text-slate-400 text-right mt-1">
+                    {(val || "").length}/{field.maxLength}
+                  </p>
+                </div>
+              )}
+              {field.type === "input" && (
+                <div>
+                  <input
+                    type="text"
+                    value={val}
+                    onChange={(e) => onChange(key, e.target.value)}
+                    maxLength={field.maxLength}
+                    placeholder="Enter text..."
+                    className={`w-full px-3.5 py-2.5 border rounded-lg text-sm outline-none transition-all text-slate-800 placeholder-slate-300 bg-white ${
+                      err
+                        ? "border-red-300 ring-2 ring-red-50"
+                        : "border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                    }`}
+                  />
+                  <p className="text-xs text-slate-400 text-right mt-1">
+                    {(val || "").length}/{field.maxLength}
+                  </p>
+                </div>
+              )}
+            </FieldWrapper>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // Single section: no card wrapper, no title
+  if (hideTitle) return <div>{fieldsGrid}</div>;
+
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <div
+      className={`rounded-xl border overflow-hidden transition-all ${hasError ? "border-red-200" : "border-slate-200"}`}
+    >
       <button
         type="button"
         onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-gray-100 hover:from-slate-100 transition-all"
+        className="w-full flex items-center gap-3 px-5 py-3.5 bg-slate-50 hover:bg-slate-100 transition-colors text-left border-b border-slate-200"
       >
-        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <span className="text-white text-xs font-bold">{sectionIndex + 1}</span>
+        <div
+          className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 text-xs font-bold text-white ${hasError ? "bg-red-500" : "bg-slate-700"}`}
+        >
+          {sectionIndex + 1}
         </div>
-        <div className="flex-1 text-left">
-          <span className="font-semibold text-gray-800 text-sm">{section.name}</span>
-          <span className="ml-2 text-xs text-gray-400">
-            {section.fields.length} field{section.fields.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+        <span className="flex-1 font-semibold text-slate-700 text-sm">{section.name}</span>
+        <span
+          className={`text-xs font-semibold px-2 py-0.5 rounded-md ${filledCount === fieldCount ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+        >
+          {filledCount}/{fieldCount}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${collapsed ? "" : "rotate-180"}`}
+        />
       </button>
-      {!collapsed && (
-        <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          {section.fields.map((field) => {
-            const key = `${sectionIndex}_${field.name}`;
-            const val = values[key] ?? (field.type === "checkbox" ? [] : "");
-            const err = errors[key];
-            const spanFull = field.type === "textarea" || field.type === "checkbox" || field.type === "radio";
-            return (
-              <div key={key} className={spanFull ? "md:col-span-2" : ""}>
-                <FieldWrapper field={field} error={err}>
-                  {field.type === "number" && (
-                    <NumberField
-                      field={field}
-                      value={val}
-                      onChange={(v) => onChange(key, v)}
-                      error={err}
-                      patientAge={patientAge}
-                      patientGender={patientGender}
-                    />
-                  )}
-                  {field.type === "radio" && (
-                    <RadioField options={field.options} value={val} onChange={(v) => onChange(key, v)} />
-                  )}
-                  {field.type === "select" && (
-                    <DropdownField options={field.options} value={val} onChange={(v) => onChange(key, v)} />
-                  )}
-                  {field.type === "checkbox" && (
-                    <CheckboxField options={field.options} value={val} onChange={(v) => onChange(key, v)} />
-                  )}
-                  {field.type === "textarea" && (
-                    <div>
-                      <textarea
-                        value={val}
-                        onChange={(e) => onChange(key, e.target.value)}
-                        maxLength={field.maxLength}
-                        rows={3}
-                        placeholder="Enter notes..."
-                        className={`w-full px-3 py-2.5 border rounded-xl text-sm resize-none outline-none transition-all ${
-                          err
-                            ? "border-red-400 ring-2 ring-red-100"
-                            : "border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
-                        }`}
-                      />
-                      <p className="text-xs text-gray-400 text-right mt-0.5">
-                        {(val || "").length}/{field.maxLength}
-                      </p>
-                    </div>
-                  )}
-                  {field.type === "input" && (
-                    <div>
-                      <input
-                        type="text"
-                        value={val}
-                        onChange={(e) => onChange(key, e.target.value)}
-                        maxLength={field.maxLength}
-                        placeholder="Enter text..."
-                        className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none transition-all ${
-                          err
-                            ? "border-red-400 ring-2 ring-red-100"
-                            : "border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
-                        }`}
-                      />
-                      <p className="text-xs text-gray-400 text-right mt-0.5">
-                        {(val || "").length}/{field.maxLength}
-                      </p>
-                    </div>
-                  )}
-                </FieldWrapper>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <div className="h-0.5 bg-slate-100">
+        <div
+          className={`h-full transition-all duration-700 ${filledCount === fieldCount && fieldCount > 0 ? "bg-emerald-400" : "bg-blue-400"}`}
+          style={{ width: fieldCount > 0 ? `${(filledCount / fieldCount) * 100}%` : "0%" }}
+        />
+      </div>
+      {!collapsed && <div className="p-5 bg-white">{fieldsGrid}</div>}
     </div>
   );
 }
 
+// ─── Results Modal ────────────────────────────────────────────────────────────
 function ResultsSummaryModal({ schema, values, patientAge, patientGender, onClose }) {
+  const isSingleSection = schema.sections.length === 1;
   const results = [];
   schema.sections.forEach((sec, si) => {
     sec.fields.forEach((field) => {
@@ -428,40 +474,42 @@ function ResultsSummaryModal({ schema, values, patientAge, patientGender, onClos
   const abnormal = results.filter((r) => r.status === "high" || r.status === "low");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-900">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-xl">
-              <ClipboardList className="w-5 h-5 text-white" />
+            <div className="p-1.5 bg-white/10 rounded-lg">
+              <ClipboardList className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h2 className="font-bold text-white text-lg">{schema.name} \u2014 Results</h2>
-              <p className="text-blue-200 text-xs">
-                {results.length} value{results.length !== 1 ? "s" : ""} recorded \u00b7 {abnormal.length} abnormal
+              <h2 className="font-bold text-white text-sm">{schema.name}</h2>
+              <p className="text-slate-400 text-xs mt-0.5">
+                {results.length} value{results.length !== 1 ? "s" : ""} · {abnormal.length} flagged
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/20 rounded-xl transition-colors text-white text-lg leading-none"
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
           >
-            \u2715
+            <XCircle className="w-4 h-4" />
           </button>
         </div>
+
         {abnormal.length > 0 && (
-          <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            <p className="text-xs text-amber-700 font-medium">
-              {abnormal.length} value{abnormal.length > 1 ? "s are" : " is"} outside the reference range
+          <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+            <p className="text-xs text-amber-800 font-semibold">
+              {abnormal.length} value{abnormal.length > 1 ? "s" : ""} outside reference range
             </p>
           </div>
         )}
-        <div className="overflow-y-auto flex-1 p-6 space-y-4">
+
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
           {results.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No values recorded yet</p>
+            <div className="text-center py-12 text-slate-400">
+              <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No values recorded</p>
             </div>
           ) : (
             schema.sections.map((sec, si) => {
@@ -469,54 +517,82 @@ function ResultsSummaryModal({ schema, values, patientAge, patientGender, onClos
               if (!rows.length) return null;
               return (
                 <div key={si}>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{sec.name}</p>
-                  <div className="space-y-2">
-                    {rows.map((r) => (
-                      <div
-                        key={r.key}
-                        className={`flex items-start justify-between px-4 py-3 rounded-xl border text-sm ${
-                          r.status === "high"
-                            ? "bg-red-50 border-red-200"
-                            : r.status === "low"
-                              ? "bg-blue-50 border-blue-200"
-                              : r.status === "normal"
-                                ? "bg-emerald-50 border-emerald-200"
-                                : "bg-gray-50 border-gray-200"
-                        }`}
-                      >
-                        <div>
-                          <span className="font-medium text-gray-800">{r.field.name}</span>
-                          <div className="mt-0.5">
-                            {Array.isArray(r.val) ? (
-                              <span className="text-gray-600">{r.val.join(", ")}</span>
-                            ) : (
-                              <span className="text-gray-700 font-semibold">
-                                {r.val}
-                                {r.field.unit ? ` ${r.field.unit}` : ""}
+                  {!isSingleSection && (
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">
+                      {sec.name}
+                    </p>
+                  )}
+                  <div className="space-y-1.5">
+                    {rows.map((r) => {
+                      const isHigh = r.status === "high";
+                      const isLow = r.status === "low";
+                      const isNormal = r.status === "normal";
+                      return (
+                        <div
+                          key={r.key}
+                          className={`flex items-center justify-between px-4 py-3 rounded-lg border text-sm ${
+                            isHigh
+                              ? "bg-red-50 border-red-200"
+                              : isLow
+                                ? "bg-orange-50 border-orange-200"
+                                : isNormal
+                                  ? "bg-emerald-50 border-emerald-200"
+                                  : "bg-slate-50 border-slate-200"
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <span className="text-slate-500 text-xs font-bold uppercase tracking-wide w-28 truncate">
+                              {r.field.name}
+                            </span>
+                            <span className="font-bold text-slate-800">
+                              {Array.isArray(r.val) ? r.val.join(", ") : r.val}
+                              {r.field.unit && (
+                                <span className="text-slate-400 font-normal ml-1 text-xs">{r.field.unit}</span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {r.range && (
+                              <span className="text-xs text-slate-400 font-medium hidden sm:block">
+                                Ref: {r.range.min}–{r.range.max}
+                              </span>
+                            )}
+                            {isHigh && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                                <TrendingUp className="w-3 h-3" />
+                                High
+                              </span>
+                            )}
+                            {isLow && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                                <TrendingDown className="w-3 h-3" />
+                                Low
+                              </span>
+                            )}
+                            {isNormal && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Normal
                               </span>
                             )}
                           </div>
                         </div>
-                        {r.status && r.status !== "neutral" && (
-                          <RangeBadge status={r.status} range={r.range} unit={r.field.unit} />
-                        )}
-                        {r.range && r.status === "neutral" && (
-                          <span className="text-xs text-gray-400">
-                            ref: {r.range.min}\u2013{r.range.max}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
             })
           )}
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+
+        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50">
+          <span className="text-xs text-slate-400">
+            {new Date().toLocaleDateString("en-US", { dateStyle: "long" })}
+          </span>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
+            className="px-5 py-2 bg-slate-900 hover:bg-slate-700 text-white rounded-lg text-sm font-semibold transition-colors"
           >
             Close
           </button>
@@ -533,6 +609,10 @@ export default function SchemaRenderer({ schema }) {
   const [patientAge, setPatientAge] = useState("");
   const [patientGender, setPatientGender] = useState("");
   const [showResults, setShowResults] = useState(false);
+
+  if (!schema || !schema.sections) return null;
+
+  const isSingleSection = schema.sections.length === 1;
 
   useEffect(() => {
     setValues({});
@@ -599,85 +679,81 @@ export default function SchemaRenderer({ schema }) {
     )
     .filter((s) => s === "high" || s === "low").length;
 
-  if (!schema || !hasFields) {
+  if (!hasFields) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-          <Eye className="w-6 h-6 text-gray-300" />
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3">
+          <Eye className="w-5 h-5 text-slate-300" />
         </div>
-        <p className="text-gray-500 font-medium">No fields to preview</p>
-        <p className="text-gray-400 text-sm mt-1">Add fields to your sections in the Builder tab</p>
+        <p className="text-slate-500 font-semibold text-sm">No fields configured</p>
+        <p className="text-slate-400 text-xs mt-1">Add fields in the Builder to preview</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      {/* Schema header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">
-            {schema.name || <span className="text-gray-400 italic font-normal">Untitled Schema</span>}
-          </h2>
-          {schema.description && <p className="text-sm text-gray-500 mt-0.5">{schema.description}</p>}
+    <div className="w-full space-y-6">
+      {/* ── Header ── */}
+      <div className="pb-5 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Activity className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Lab Report Form</span>
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">{schema.name || "Untitled Schema"}</h1>
+            {schema.description && <p className="text-sm text-slate-500 mt-1">{schema.description}</p>}
+          </div>
+          <span
+            className={`text-xs px-2.5 py-1 rounded-md font-bold border uppercase tracking-wide flex-shrink-0 ${
+              schema.isActive
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-slate-100 text-slate-500 border-slate-200"
+            }`}
+          >
+            {schema.isActive ? "Active" : "Inactive"}
+          </span>
         </div>
-        <span
-          className={`text-xs px-3 py-1.5 rounded-full font-medium border flex-shrink-0 ${
-            schema.isActive
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-gray-100 text-gray-500 border-gray-200"
-          }`}
-        >
-          {schema.isActive ? "\u25cf Active" : "\u25cb Inactive"}
-        </span>
+
+        {requiredKeys.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="text-slate-400 font-medium">Completion</span>
+              <span className={`font-bold ${progress === 100 ? "text-emerald-600" : "text-slate-500"}`}>
+                {filledRequired.length} / {requiredKeys.length} required
+              </span>
+            </div>
+            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ease-out ${progress === 100 ? "bg-emerald-500" : "bg-blue-500"}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Progress */}
-      {requiredKeys.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-            <span>Required fields</span>
-            <span className={`font-semibold ${progress === 100 ? "text-emerald-600" : "text-gray-600"}`}>
-              {filledRequired.length}/{requiredKeys.length} filled
-            </span>
-          </div>
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-emerald-500" : "bg-blue-500"}`}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Abnormal warning */}
+      {/* ── Abnormal Alert ── */}
       {abnormalCount > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
           <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-          <p className="text-xs text-amber-700">
-            <span className="font-semibold">
-              {abnormalCount} value{abnormalCount > 1 ? "s" : ""}
-            </span>{" "}
-            outside reference range
+          <p className="text-xs text-amber-800 font-semibold">
+            {abnormalCount} value{abnormalCount > 1 ? "s" : ""} outside reference range
           </p>
         </div>
       )}
 
-      {/* Patient context */}
+      {/* ── Patient Context ── */}
       {needsContext && (
-        <div className="bg-white border border-blue-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-3.5 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
-            <div className="w-7 h-7 rounded-xl bg-blue-100 flex items-center justify-center">
-              <User className="w-3.5 h-3.5 text-blue-600" />
-            </div>
-            <div>
-              <span className="font-semibold text-gray-800 text-sm">Patient Context</span>
-              <p className="text-xs text-gray-400">For age/gender-based reference ranges</p>
-            </div>
+        <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-3 bg-slate-50 border-b border-slate-200">
+            <User className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Patient Context</span>
+            <span className="text-xs text-slate-400 ml-auto">Required for dynamic reference ranges</span>
           </div>
-          <div className="px-5 py-4 grid grid-cols-2 gap-5">
+          <div className="px-5 py-4 bg-white grid grid-cols-2 gap-5">
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1.5">Patient Age</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Age</label>
               <div className="relative">
                 <input
                   type="number"
@@ -686,28 +762,28 @@ export default function SchemaRenderer({ schema }) {
                   placeholder="e.g. 35"
                   min="0"
                   max="150"
-                  className="w-full pl-3 pr-12 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                  className="w-full pl-3.5 pr-12 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-50 focus:border-blue-400 text-slate-800 bg-white font-medium"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">yrs</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 uppercase">
+                  yrs
+                </span>
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1.5">Patient Gender</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Gender</label>
               <div className="flex gap-2">
                 {["male", "female"].map((g) => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => setPatientGender(patientGender === g ? "" : g)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all ${
                       patientGender === g
-                        ? g === "male"
-                          ? "bg-blue-600 border-blue-600 text-white"
-                          : "bg-pink-500 border-pink-500 text-white"
-                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                        ? "bg-slate-900 border-slate-900 text-white"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-400"
                     }`}
                   >
-                    {g === "male" ? "\u2642 Male" : "\u2640 Female"}
+                    {g === "male" ? "♂ Male" : "♀ Female"}
                   </button>
                 ))}
               </div>
@@ -716,62 +792,65 @@ export default function SchemaRenderer({ schema }) {
         </div>
       )}
 
-      {/* Sections */}
-      {schema.sections.map((section, si) => (
-        <SectionPanel
-          key={si}
-          section={section}
-          sectionIndex={si}
-          values={values}
-          onChange={handleChange}
-          errors={errors}
-          patientAge={patientAge}
-          patientGender={patientGender}
-        />
-      ))}
+      {/* ── Sections ── */}
+      <div className={isSingleSection ? "" : "space-y-3"}>
+        {schema.sections.map((section, si) => (
+          <SectionPanel
+            key={si}
+            section={section}
+            sectionIndex={si}
+            values={values}
+            onChange={handleChange}
+            errors={errors}
+            patientAge={patientAge}
+            patientGender={patientGender}
+            hideTitle={isSingleSection}
+          />
+        ))}
+      </div>
 
-      {/* Static range note */}
+      {/* ── Static Range Note ── */}
       {schema.hasStaticStandardRange && schema.staticStandardRange && (
-        <div className="px-5 py-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+        <div className="px-4 py-3.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
           <Info className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-xs font-semibold text-amber-700 mb-0.5">Standard Reference</p>
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-0.5">Standard Reference</p>
             <p className="text-xs text-amber-600">{schema.staticStandardRange}</p>
           </div>
         </div>
       )}
 
-      {/* Validation error summary */}
+      {/* ── Validation Errors ── */}
       {Object.keys(errors).length > 0 && (
-        <div className="px-5 py-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+        <div className="px-4 py-3.5 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
           <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-xs font-semibold text-red-700">Please complete all required fields</p>
+            <p className="text-xs font-bold text-red-700">Validation errors</p>
             <p className="text-xs text-red-500 mt-0.5">
-              {Object.keys(errors).length} field{Object.keys(errors).length > 1 ? "s" : ""} need attention
+              {Object.keys(errors).length} field{Object.keys(errors).length > 1 ? "s" : ""} require attention
             </p>
           </div>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-between pt-1 pb-4">
+      {/* ── Action Bar ── */}
+      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
         <button
           type="button"
           onClick={() => {
             setValues({});
             setErrors({});
           }}
-          className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all font-medium"
+          className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-500 hover:text-slate-800 hover:border-slate-400 hover:bg-slate-50 transition-all font-semibold"
         >
-          <RotateCcw className="w-4 h-4" /> Reset
+          <RotateCcw className="w-3.5 h-3.5" /> Reset
         </button>
         <button
           type="button"
           onClick={handleSubmit}
-          className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
+          className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm"
         >
-          <Send className="w-4 h-4" /> Submit Report
+          <Send className="w-3.5 h-3.5" /> Submit Report
         </button>
       </div>
 
