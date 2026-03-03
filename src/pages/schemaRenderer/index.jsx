@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, AlertCircle, RotateCcw } from "lucide-react";
-import SchemaRenderer from "../schemaBuilder/SchemaRenderer";
+import SchemaRenderer from "./SchemaRenderer";
 import schemaService from "../../services/schemaService";
 
 export default function RenderSchemaPage() {
@@ -15,6 +15,7 @@ export default function RenderSchemaPage() {
     setError(null);
     try {
       const response = await schemaService.getById(schemaId);
+      // console.log(response.data.name);
       setSchema(response.data);
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || "Failed to load schema.");

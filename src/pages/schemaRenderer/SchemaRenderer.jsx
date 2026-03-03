@@ -537,7 +537,7 @@ function SchemaRenderer({ schema }) {
 
     try {
       setLoading(true);
-      await reportService.addReport(report);
+      await reportService.addReport({...report, name: schema.name});
       setPopup({ type: "success", message: "Report submitted successfully" });
     } catch (e) {
       setPopup({ type: "error", message: "Could not submit report" });

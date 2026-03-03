@@ -783,7 +783,7 @@ function SectionCard({ section, index, total, fieldErrors }) {
   );
 }
 
-import SchemaRenderer from "./SchemaRenderer";
+import SchemaRenderer from "../schemaRenderer/SchemaRenderer";
 import schemaService from "../../services/schemaService";
 import testService from "../../services/testService";
 
