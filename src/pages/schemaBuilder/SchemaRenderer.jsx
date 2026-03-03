@@ -8,13 +8,15 @@ import {
   TrendingDown,
   Minus,
   User,
-  ClipboardList,
   RotateCcw,
   Send,
   AlertTriangle,
   Eye,
   Activity,
 } from "lucide-react";
+import reportService from "../../services/reportService";
+import LoadingScreen from "../../components/loadingPage";
+import Popup from "../../components/popup/Popup";
 
 // ─── Range Logic ──────────────────────────────────────────────────────────────
 export function getStandardRange(field, patientAge, patientGender) {
@@ -172,7 +174,6 @@ function NumberField({ field, value, onChange, error, patientAge, patientGender 
         )}
       </div>
 
-      {/* Range ref + status badge row */}
       <div className="flex items-center gap-2 flex-wrap min-h-[18px]">
         {range ? (
           <span className="text-xs text-slate-400">
@@ -419,7 +420,6 @@ function SectionPanel({ section, sectionIndex, values, onChange, errors, patient
     </div>
   );
 
-  // Single section: no card wrapper, no title
   if (hideTitle) return <div>{fieldsGrid}</div>;
 
   return (
@@ -457,158 +457,14 @@ function SectionPanel({ section, sectionIndex, values, onChange, errors, patient
   );
 }
 
-// ─── Results Modal ────────────────────────────────────────────────────────────
-function ResultsSummaryModal({ schema, values, patientAge, patientGender, onClose }) {
-  const isSingleSection = schema.sections.length === 1;
-  const results = [];
-  schema.sections.forEach((sec, si) => {
-    sec.fields.forEach((field) => {
-      const key = `${si}_${field.name}`;
-      const val = values[key];
-      if (val === "" || val === undefined || val === null || (Array.isArray(val) && val.length === 0)) return;
-      const range = field.type === "number" ? getStandardRange(field, patientAge, patientGender) : null;
-      const status = field.type === "number" ? getRangeStatus(val, range) : null;
-      results.push({ section: sec.name, field, val, range, status, key });
-    });
-  });
-  const abnormal = results.filter((r) => r.status === "high" || r.status === "low");
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-slate-200">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-white/10 rounded-lg">
-              <ClipboardList className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h2 className="font-bold text-white text-sm">{schema.name}</h2>
-              <p className="text-slate-400 text-xs mt-0.5">
-                {results.length} value{results.length !== 1 ? "s" : ""} · {abnormal.length} flagged
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
-          >
-            <XCircle className="w-4 h-4" />
-          </button>
-        </div>
-
-        {abnormal.length > 0 && (
-          <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-            <p className="text-xs text-amber-800 font-semibold">
-              {abnormal.length} value{abnormal.length > 1 ? "s" : ""} outside reference range
-            </p>
-          </div>
-        )}
-
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
-          {results.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
-              <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No values recorded</p>
-            </div>
-          ) : (
-            schema.sections.map((sec, si) => {
-              const rows = results.filter((r) => r.section === sec.name);
-              if (!rows.length) return null;
-              return (
-                <div key={si}>
-                  {!isSingleSection && (
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">
-                      {sec.name}
-                    </p>
-                  )}
-                  <div className="space-y-1.5">
-                    {rows.map((r) => {
-                      const isHigh = r.status === "high";
-                      const isLow = r.status === "low";
-                      const isNormal = r.status === "normal";
-                      return (
-                        <div
-                          key={r.key}
-                          className={`flex items-center justify-between px-4 py-3 rounded-lg border text-sm ${
-                            isHigh
-                              ? "bg-red-50 border-red-200"
-                              : isLow
-                                ? "bg-orange-50 border-orange-200"
-                                : isNormal
-                                  ? "bg-emerald-50 border-emerald-200"
-                                  : "bg-slate-50 border-slate-200"
-                          }`}
-                        >
-                          <div className="flex items-center gap-4">
-                            <span className="text-slate-500 text-xs font-bold uppercase tracking-wide w-28 truncate">
-                              {r.field.name}
-                            </span>
-                            <span className="font-bold text-slate-800">
-                              {Array.isArray(r.val) ? r.val.join(", ") : r.val}
-                              {r.field.unit && (
-                                <span className="text-slate-400 font-normal ml-1 text-xs">{r.field.unit}</span>
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {r.range && (
-                              <span className="text-xs text-slate-400 font-medium hidden sm:block">
-                                Ref: {r.range.min}–{r.range.max}
-                              </span>
-                            )}
-                            {isHigh && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                                <TrendingUp className="w-3 h-3" />
-                                High
-                              </span>
-                            )}
-                            {isLow && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">
-                                <TrendingDown className="w-3 h-3" />
-                                Low
-                              </span>
-                            )}
-                            {isNormal && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3" />
-                                Normal
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between bg-slate-50">
-          <span className="text-xs text-slate-400">
-            {new Date().toLocaleDateString("en-US", { dateStyle: "long" })}
-          </span>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-700 text-white rounded-lg text-sm font-semibold transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Export ──────────────────────────────────────────────────────────────
-export default function SchemaRenderer({ schema }) {
+function SchemaRenderer({ schema }) {
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState({});
   const [patientAge, setPatientAge] = useState("");
   const [patientGender, setPatientGender] = useState("");
-  const [showResults, setShowResults] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [popup, setPopup] = useState(null);
 
   if (!schema || !schema.sections) return null;
 
@@ -641,14 +497,53 @@ export default function SchemaRenderer({ schema }) {
     return errs;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       return;
     }
     setErrors({});
-    setShowResults(true);
+
+    const report = {};
+    schema.sections.forEach((sec, si) => {
+      const sectionData = {};
+      sec.fields.forEach((field) => {
+        const key = `${si}_${field.name}`;
+        const val = values[key];
+        if (val !== "" && val !== undefined && val !== null && !(Array.isArray(val) && val.length === 0)) {
+          sectionData[field.name] = {
+            value: val,
+            ...(field.unit ? { unit: field.unit } : {}),
+            ...(field.type === "number"
+              ? (() => {
+                  const range = getStandardRange(field, patientAge, patientGender);
+                  return range ? { referenceRange: `${range.min}–${range.max}` } : {};
+                })()
+              : {}),
+          };
+        }
+      });
+      if (Object.keys(sectionData).length > 0) {
+        report[sec.name] = sectionData;
+      }
+    });
+
+    console.group(`📋 Lab Report Submitted: ${schema.name}`);
+    if (patientAge || patientGender)
+      console.log("Patient:", { age: patientAge || null, gender: patientGender || null });
+    console.log("Report Data:", report);
+    console.groupEnd();
+
+    try {
+      setLoading(true);
+      await reportService.addReport(report);
+      setPopup({ type: "success", message: "Report submitted successfully" });
+    } catch (e) {
+      setPopup({ type: "error", message: "Could not submit report" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const needsContext = schema.sections.some((sec) =>
@@ -693,6 +588,9 @@ export default function SchemaRenderer({ schema }) {
 
   return (
     <div className="w-full space-y-6">
+      {loading && <LoadingScreen />}
+      {popup && <Popup type={popup.type} message={popup.message} onClose={() => setPopup(null)} />}
+
       {/* ── Header ── */}
       <div className="pb-5 border-b border-slate-100">
         <div className="flex items-start justify-between gap-4">
@@ -848,21 +746,14 @@ export default function SchemaRenderer({ schema }) {
         <button
           type="button"
           onClick={handleSubmit}
-          className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm"
+          disabled={loading}
+          className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-sm"
         >
           <Send className="w-3.5 h-3.5" /> Submit Report
         </button>
       </div>
-
-      {showResults && (
-        <ResultsSummaryModal
-          schema={schema}
-          values={values}
-          patientAge={patientAge}
-          patientGender={patientGender}
-          onClose={() => setShowResults(false)}
-        />
-      )}
     </div>
   );
 }
+
+export default SchemaRenderer;

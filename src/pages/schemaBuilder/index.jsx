@@ -289,27 +289,63 @@ function AgeRangeInput({ data = [], onChange }) {
   const removeRow = (i) => onChange(rows.filter((_, idx) => idx !== i));
   const update = (i, key, val) => onChange(rows.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
 
+  // When maxAge loses focus and is empty → set to 999
+  const handleMaxAgeBlur = (i, val) => {
+    if (val === "" || val === null || val === undefined) {
+      update(i, "maxAge", 999);
+    }
+  };
+
   return (
     <div className="space-y-2">
       {rows.map((row, i) => (
         <div key={i} className="grid grid-cols-5 gap-2 items-center p-2 bg-gray-50 rounded-lg border border-gray-200">
-          {[
-            ["minAge", "Min Age"],
-            ["maxAge", "Max Age"],
-            ["minValue", "Min Val"],
-            ["maxValue", "Max Val"],
-          ].map(([k, lbl]) => (
-            <div key={k}>
-              <label className="text-xs text-gray-400 block mb-0.5">{lbl}</label>
-              <input
-                type="number"
-                value={row[k] === 999 ? "" : row[k] || ""}
-                placeholder={k === "maxAge" && i === rows.length - 1 ? "∞" : ""}
-                onChange={(e) => update(i, k, e.target.value)}
-                className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-              />
-            </div>
-          ))}
+          {/* Min Age */}
+          <div>
+            <label className="text-xs text-gray-400 block mb-0.5">Min Age</label>
+            <input
+              type="number"
+              value={row.minAge || ""}
+              onChange={(e) => update(i, "minAge", e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+            />
+          </div>
+
+          {/* Max Age — shows empty for 999, placeholder shows "∞ (no limit)" */}
+          <div>
+            <label className="text-xs text-gray-400 block mb-0.5">Max Age</label>
+            <input
+              type="number"
+              value={row.maxAge === 999 || row.maxAge === "" ? "" : row.maxAge || ""}
+              placeholder="∞ (no limit)"
+              onChange={(e) => update(i, "maxAge", e.target.value)}
+              onBlur={(e) => handleMaxAgeBlur(i, e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+            />
+          </div>
+
+          {/* Min Value */}
+          <div>
+            <label className="text-xs text-gray-400 block mb-0.5">Min Val</label>
+            <input
+              type="number"
+              value={row.minValue || ""}
+              onChange={(e) => update(i, "minValue", e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+            />
+          </div>
+
+          {/* Max Value */}
+          <div>
+            <label className="text-xs text-gray-400 block mb-0.5">Max Val</label>
+            <input
+              type="number"
+              value={row.maxValue || ""}
+              onChange={(e) => update(i, "maxValue", e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+            />
+          </div>
+
           <button
             onClick={() => removeRow(i)}
             className="mt-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -370,7 +406,7 @@ function GenderRangeInput({ data = {}, onChange }) {
 
 function CombinedRangeInput({ data = [], onChange }) {
   const rows = Array.isArray(data) ? data : [];
-  const addRow = () => onChange([...rows, { gender: "male", minAge: "", maxAge: "", minValue: "", maxValue: "" }]);
+  const addRow = () => onChange([...rows, { gender: "male", minAge: "", maxAge: 999, minValue: "", maxValue: "" }]);
   const removeRow = (i) => onChange(rows.filter((_, idx) => idx !== i));
   const update = (i, key, val) => onChange(rows.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
 
@@ -389,6 +425,7 @@ function CombinedRangeInput({ data = [], onChange }) {
               <option value="female">Female</option>
             </select>
           </div>
+
           {[
             ["minAge", "Min Age"],
             ["maxAge", "Max Age"],
@@ -399,12 +436,21 @@ function CombinedRangeInput({ data = [], onChange }) {
               <label className="text-xs text-gray-400 block mb-0.5">{lbl}</label>
               <input
                 type="number"
-                value={row[k] === 999 ? "" : row[k] || ""}
-                onChange={(e) => update(i, k, e.target.value)}
+                value={k === "maxAge" && (row[k] === 999 || row[k] === "") ? "" : row[k] || ""}
+                placeholder={k === "maxAge" ? "∞ (no limit)" : ""}
+                onChange={(e) => {
+                  update(i, k, e.target.value === "" ? "" : Number(e.target.value));
+                }}
+                onBlur={(e) => {
+                  if (k === "maxAge" && (e.target.value === "" || e.target.value === null)) {
+                    update(i, "maxAge", 999);
+                  }
+                }}
                 className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
               />
             </div>
           ))}
+
           <button
             onClick={() => removeRow(i)}
             className="mt-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"

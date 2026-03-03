@@ -11,6 +11,7 @@ import SchemaBuilder from "./pages/schemaBuilder";
 import SchemaRenderer from "./pages/schemaRenderer";
 
 import UnderConstruction from "./pages/schemaBuilder";
+import ReportViewer from "./pages/reportViewer";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/schema-builder/:schemaId" element={<SchemaBuilder />} />
         <Route path="/render-schema/:schemaId" element={<SchemaRenderer />} />
         <Route path="/schema-list" element={<SchemaList />} />
+        <Route path="/reports" element={<ReportViewer />} />
         <Route path="/underConstruction" element={<UnderConstruction />} />
       </Routes>
     </Layout>
