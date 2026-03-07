@@ -5,7 +5,7 @@ const cloud = "https://labpilot-adminbackend.onrender.com/api/v1"
 const local = 'http://localhost:3000/api/v1'
 
 const api = axios.create({
-  baseURL: cloud,
+  baseURL: local,
    timeout: 10000,
 });
 

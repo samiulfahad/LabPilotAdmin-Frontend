@@ -26,6 +26,7 @@ import {
   X,
   Info,
   Eye,
+  EyeOff,
 } from "lucide-react";
 
 // ─── Zustand Store ────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ const useSchemaStore = create((set, get) => ({
     isActive: true,
     hasStaticStandardRange: false,
     staticStandardRange: "",
-    sections: [{ id: Date.now(), name: "Section A", fields: [] }],
+    sections: [{ id: Date.now(), name: "Section A", showTitleInReport: true, fields: [] }],
   },
   errors: {},
   fieldErrors: {},
@@ -58,7 +59,12 @@ const useSchemaStore = create((set, get) => ({
         ...s.schema,
         sections: [
           ...s.schema.sections,
-          { id: Date.now(), name: `Section ${String.fromCharCode(65 + s.schema.sections.length)}`, fields: [] },
+          {
+            id: Date.now(),
+            name: `Section ${String.fromCharCode(65 + s.schema.sections.length)}`,
+            showTitleInReport: true,
+            fields: [],
+          },
         ],
       },
     })),
@@ -289,7 +295,6 @@ function AgeRangeInput({ data = [], onChange }) {
   const removeRow = (i) => onChange(rows.filter((_, idx) => idx !== i));
   const update = (i, key, val) => onChange(rows.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
 
-  // When maxAge loses focus and is empty → set to 999
   const handleMaxAgeBlur = (i, val) => {
     if (val === "" || val === null || val === undefined) {
       update(i, "maxAge", 999);
@@ -300,7 +305,6 @@ function AgeRangeInput({ data = [], onChange }) {
     <div className="space-y-2">
       {rows.map((row, i) => (
         <div key={i} className="grid grid-cols-5 gap-2 items-center p-2 bg-gray-50 rounded-lg border border-gray-200">
-          {/* Min Age */}
           <div>
             <label className="text-xs text-gray-400 block mb-0.5">Min Age</label>
             <input
@@ -310,8 +314,6 @@ function AgeRangeInput({ data = [], onChange }) {
               className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
             />
           </div>
-
-          {/* Max Age — shows empty for 999, placeholder shows "∞ (no limit)" */}
           <div>
             <label className="text-xs text-gray-400 block mb-0.5">Max Age</label>
             <input
@@ -323,8 +325,6 @@ function AgeRangeInput({ data = [], onChange }) {
               className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
             />
           </div>
-
-          {/* Min Value */}
           <div>
             <label className="text-xs text-gray-400 block mb-0.5">Min Val</label>
             <input
@@ -334,8 +334,6 @@ function AgeRangeInput({ data = [], onChange }) {
               className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
             />
           </div>
-
-          {/* Max Value */}
           <div>
             <label className="text-xs text-gray-400 block mb-0.5">Max Val</label>
             <input
@@ -345,7 +343,6 @@ function AgeRangeInput({ data = [], onChange }) {
               className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
             />
           </div>
-
           <button
             onClick={() => removeRow(i)}
             className="mt-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -425,7 +422,6 @@ function CombinedRangeInput({ data = [], onChange }) {
               <option value="female">Female</option>
             </select>
           </div>
-
           {[
             ["minAge", "Min Age"],
             ["maxAge", "Max Age"],
@@ -450,7 +446,6 @@ function CombinedRangeInput({ data = [], onChange }) {
               />
             </div>
           ))}
-
           <button
             onClick={() => removeRow(i)}
             className="mt-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -720,6 +715,9 @@ function SectionCard({ section, index, total, fieldErrors }) {
   const { updateSection, removeSection, addField } = useSchemaStore();
   const hasSectionError = section.fields.some((f) => fieldErrors[f.id]);
 
+  // showTitleInReport defaults to true if not set (backward compat)
+  const showTitle = section.showTitleInReport !== false;
+
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
       <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
@@ -738,6 +736,37 @@ function SectionCard({ section, index, total, fieldErrors }) {
           <span className="text-xs text-gray-400">
             {section.fields.length} field{section.fields.length !== 1 ? "s" : ""}
           </span>
+
+          {/* ── Show Title in Report toggle ── */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              updateSection(section.id, "showTitleInReport", !showTitle);
+            }}
+            title={
+              showTitle
+                ? "Section title visible in report — click to hide"
+                : "Section title hidden in report — click to show"
+            }
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+              showTitle
+                ? "bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100"
+                : "bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100"
+            }`}
+          >
+            {showTitle ? (
+              <>
+                <Eye className="w-3 h-3" />
+                <span className="hidden sm:inline">Title in report</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-3 h-3" />
+                <span className="hidden sm:inline">Title hidden</span>
+              </>
+            )}
+          </button>
+
           {total > 1 && (
             <button
               onClick={() => removeSection(section.id)}
@@ -802,15 +831,14 @@ function SkeletonLoader() {
   );
 }
 
-// ─── Helpers to normalize API schema → store schema ──────────────────────────
-// When loading from API, sections/fields may not have local `id` fields.
-// We inject them so the builder UI can track items by id.
 function normalizeSchema(apiSchema) {
   return {
     ...apiSchema,
     sections: (apiSchema.sections || []).map((sec) => ({
       ...sec,
       id: sec.id ?? sec._id ?? Date.now() + Math.random(),
+      // preserve existing showTitleInReport; default true for legacy sections
+      showTitleInReport: sec.showTitleInReport !== false,
       fields: (sec.fields || []).map((f) => ({
         ...f,
         id: f.id ?? f._id ?? Date.now() + Math.random(),
@@ -838,17 +866,15 @@ export default function SchemaBuilder() {
 
   const navigate = useNavigate();
 
-  // Detect edit mode via URL param — e.g. /schema/:schemaId
-  // If no schemaId param, we're in create mode.
   const { schemaId } = useParams();
   const isEditMode = Boolean(schemaId);
 
   const [loadingSchema, setLoadingSchema] = useState(isEditMode);
-  const [loadError, setLoadError] = useState(null); // error loading schema in edit mode
+  const [loadError, setLoadError] = useState(null);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [toast, setToast] = useState(null); // { type: "success"|"error", message }
+  const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState("builder");
 
   const showToast = (type, message) => {
@@ -856,7 +882,6 @@ export default function SchemaBuilder() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Load tests ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const loadTests = async () => {
       setLoadingTests(true);
@@ -865,14 +890,12 @@ export default function SchemaBuilder() {
         setTests(response.data);
       } catch (e) {
         console.error("Failed to load test list:", e);
-        // Non-fatal — show empty dropdown, user can retry via page refresh
         setTests([]);
       }
     };
     loadTests();
   }, []);
 
-  // ── Load existing schema (edit mode) ───────────────────────────────────────
   useEffect(() => {
     if (!isEditMode) return;
 
@@ -894,7 +917,6 @@ export default function SchemaBuilder() {
     loadSchema();
   }, [schemaId]);
 
-  // ── Validation ──────────────────────────────────────────────────────────────
   const validate = () => {
     const errs = {};
     if (!schema.testId) errs.testId = "Please select a test";
@@ -912,7 +934,6 @@ export default function SchemaBuilder() {
     return { errs, hasFieldErrors: Object.keys(fErrs).length > 0 };
   };
 
-  // ── Serialize (strip UI-only ids before sending to API) ─────────────────────
   const getOutput = () => ({
     name: schema.name,
     description: schema.description,
@@ -922,11 +943,12 @@ export default function SchemaBuilder() {
     staticStandardRange: schema.staticStandardRange,
     sections: schema.sections.map(({ id, ...sec }) => ({
       ...sec,
+      // include showTitleInReport in the saved payload
+      showTitleInReport: sec.showTitleInReport !== false,
       fields: sec.fields.map(({ id, ...f }) => f),
     })),
   });
 
-  // ── Save (create or update) ─────────────────────────────────────────────────
   const handleSave = async () => {
     const { errs, hasFieldErrors } = validate();
     if (Object.keys(errs).length > 0) setErrors(errs);
@@ -937,18 +959,13 @@ export default function SchemaBuilder() {
 
     try {
       if (isEditMode) {
-        // ── UPDATE ──────────────────────────────────────────────────────────
         await schemaService.update(schemaId, payload);
         showToast("success", "Schema updated successfully");
       } else {
-        // ── CREATE ──────────────────────────────────────────────────────────
         const response = await schemaService.addNew(payload);
         showToast("success", "Schema saved successfully");
-        // Optionally redirect to edit mode with the new id so subsequent
-        // saves hit the update endpoint instead of creating duplicates.
         const newId = response?.data?._id;
         if (newId) {
-          // Replace current history entry so the back button still works
           navigate(`/schema/${newId}`, { replace: true });
         }
       }
@@ -968,7 +985,6 @@ export default function SchemaBuilder() {
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   const isLoading = loadingTests || loadingSchema;
 
   return (
@@ -1072,7 +1088,7 @@ export default function SchemaBuilder() {
         </div>
       </div>
 
-      {/* Schema load error banner (edit mode) */}
+      {/* Schema load error banner */}
       {loadError && (
         <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
           <XCircle className="w-4 h-4 flex-shrink-0 text-red-500" />

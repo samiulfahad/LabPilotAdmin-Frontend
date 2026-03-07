@@ -62,6 +62,13 @@ function isResultField(field) {
   return Boolean(field.referenceRange) || Boolean(field.unit);
 }
 
+/**
+ * Extract the data fields from a section object, excluding the __showTitle meta key.
+ */
+function getSectionEntries(sectionData) {
+  return Object.entries(sectionData).filter(([key]) => key !== "__showTitle");
+}
+
 function StatusPill({ status }) {
   if (!status) return <span className="text-xs text-slate-300">—</span>;
   const cfg = {
@@ -119,12 +126,67 @@ function PlainRow({ name, field, colSpan }) {
   );
 }
 
-function Section({ sectionName, sectionData, index }) {
+/**
+ * Section component.
+ * showHeader: when false the dark title bar is omitted and fields render bare.
+ */
+function Section({ sectionName, sectionData, index, showHeader }) {
   const [collapsed, setCollapsed] = useState(false);
-  const entries = Object.entries(sectionData);
+  const entries = getSectionEntries(sectionData);
   const resultEntries = entries.filter(([, v]) => isResultField(v));
   const plainEntries = entries.filter(([, v]) => !isResultField(v));
   const hasUnits = resultEntries.some(([, v]) => Boolean(v.unit));
+
+  const tableBody = (
+    <>
+      {resultEntries.length > 0 && (
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="pl-4 pr-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[34%]">
+                Parameter
+              </th>
+              <th className="px-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[16%]">
+                Result
+              </th>
+              {hasUnits && (
+                <th className="px-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">
+                  Unit
+                </th>
+              )}
+              <th className="px-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[24%]">
+                Ref. Range
+              </th>
+              <th className="px-3 pr-4 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[18%]">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {resultEntries.map(([n, f]) => (
+              <ResultRow key={n} name={n} field={f} hasUnits={hasUnits} />
+            ))}
+          </tbody>
+        </table>
+      )}
+      {plainEntries.length > 0 && (
+        <table className={`w-full border-collapse ${resultEntries.length > 0 ? "border-t border-slate-200" : ""}`}>
+          <tbody>
+            {plainEntries.map(([n, f]) => (
+              <PlainRow key={n} name={n} field={f} colSpan={hasUnits ? 4 : 3} />
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+
+  // ── No header variant ────────────────────────────────────────────────────
+  if (!showHeader) {
+    return <div className="rounded-lg overflow-hidden border border-slate-200 mb-2.5">{tableBody}</div>;
+  }
+
+  // ── With collapsible header ──────────────────────────────────────────────
   return (
     <div className="rounded-lg overflow-hidden border border-slate-200 mb-2.5">
       <button
@@ -143,49 +205,7 @@ function Section({ sectionName, sectionData, index }) {
           className={`w-3.5 h-3.5 text-slate-400 transition-transform flex-shrink-0 ${collapsed ? "" : "rotate-180"}`}
         />
       </button>
-      {!collapsed && (
-        <div>
-          {resultEntries.length > 0 && (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="pl-4 pr-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[34%]">
-                    Parameter
-                  </th>
-                  <th className="px-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[16%]">
-                    Result
-                  </th>
-                  {hasUnits && (
-                    <th className="px-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">
-                      Unit
-                    </th>
-                  )}
-                  <th className="px-3 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[24%]">
-                    Ref. Range
-                  </th>
-                  <th className="px-3 pr-4 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[18%]">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultEntries.map(([n, f]) => (
-                  <ResultRow key={n} name={n} field={f} hasUnits={hasUnits} />
-                ))}
-              </tbody>
-            </table>
-          )}
-          {plainEntries.length > 0 && (
-            <table className={`w-full border-collapse ${resultEntries.length > 0 ? "border-t border-slate-200" : ""}`}>
-              <tbody>
-                {plainEntries.map(([n, f]) => (
-                  <PlainRow key={n} name={n} field={f} colSpan={hasUnits ? 4 : 3} />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+      {!collapsed && <div>{tableBody}</div>}
     </div>
   );
 }
@@ -195,7 +215,7 @@ function SummaryStrip({ sections }) {
     low = 0,
     high = 0;
   sections.forEach(([, sec]) => {
-    Object.values(sec).forEach((field) => {
+    getSectionEntries(sec).forEach(([, field]) => {
       if (!isResultField(field)) return;
       const s = getStatus(field.value, field.referenceRange);
       if (s === "normal") normal++;
@@ -259,14 +279,15 @@ function PatientGrid({ patient }) {
   );
 }
 
-// ── Print via browser (existing HTML approach, no change needed) ──
+// ── Print via browser ─────────────────────────────────────────────────────────
 function buildPrintHTML({ reportName, shortId, mergedPatient, labInfo, sections }) {
   const statusLabel = (s) => ({ normal: "Normal", low: "↓ Low", high: "↑ High" })[s] || "—";
   const statusColor = (s) => ({ normal: "#059669", low: "#d97706", high: "#dc2626" })[s] || "#94a3b8";
   const statusBg = (s) => ({ normal: "#f0fdf4", low: "#fffbeb", high: "#fef2f2" })[s] || "white";
 
   const renderSection = (sectionName, sectionData, index) => {
-    const entries = Object.entries(sectionData);
+    const showHeader = sectionData.__showTitle !== false;
+    const entries = getSectionEntries(sectionData);
     const resultEntries = entries.filter(([, v]) => isResultField(v));
     const plainEntries = entries.filter(([, v]) => !isResultField(v));
     const hasUnits = resultEntries.some(([, v]) => Boolean(v.unit));
@@ -294,12 +315,17 @@ function buildPrintHTML({ reportName, shortId, mergedPatient, labInfo, sections 
         return `<tr style="background:white;"><td style="padding:7px 12px;font-size:12px;color:#6b7280;border-bottom:1px solid #f1f5f9;">${name}</td><td style="padding:7px 12px;font-size:12px;font-weight:600;color:#111827;border-bottom:1px solid #f1f5f9;" colspan="${hasUnits ? 4 : 3}">${val || "—"}</td></tr>`;
       })
       .join("");
+
+    const headerHTML = showHeader
+      ? `<div style="background:#334155;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+          <span style="width:20px;height:20px;background:rgba(255,255,255,0.15);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:700;">${String.fromCharCode(65 + index)}</span>
+          <span style="color:white;font-size:12px;font-weight:600;flex:1;">${sectionName}</span>
+          <span style="color:#94a3b8;font-size:9px;">${entries.length} parameter${entries.length !== 1 ? "s" : ""}</span>
+        </div>`
+      : "";
+
     return `<div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:10px;">
-      <div style="background:#334155;padding:8px 14px;display:flex;align-items:center;gap:8px;">
-        <span style="width:20px;height:20px;background:rgba(255,255,255,0.15);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:700;">${String.fromCharCode(65 + index)}</span>
-        <span style="color:white;font-size:12px;font-weight:600;flex:1;">${sectionName}</span>
-        <span style="color:#94a3b8;font-size:9px;">${entries.length} parameter${entries.length !== 1 ? "s" : ""}</span>
-      </div>
+      ${headerHTML}
       ${resultEntries.length > 0 ? `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0;"><th style="padding:5px 12px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;width:34%;">Parameter</th><th style="padding:5px 12px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;width:16%;">Result</th>${unitHeader}<th style="padding:5px 12px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;width:24%;">Ref. Range</th><th style="padding:5px 12px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;width:18%;">Status</th></tr></thead><tbody>${resultRows}</tbody></table>` : ""}
       ${plainEntries.length > 0 ? `<table style="width:100%;border-collapse:collapse;${resultEntries.length > 0 ? "border-top:1px solid #e2e8f0;" : ""}"><tbody>${plainRows}</tbody></table>` : ""}
     </div>`;
@@ -318,11 +344,12 @@ function buildPrintHTML({ reportName, shortId, mergedPatient, labInfo, sections 
         `<td style="padding:6px 12px;background:white;vertical-align:top;border-right:1px solid #e2e8f0;width:20%;"><div style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;">${label}</div><div style="font-size:11px;font-weight:600;color:#1e293b;margin-top:2px;">${value || "—"}</div></td>`,
     )
     .join("");
+
   let normal = 0,
     low = 0,
     high = 0;
   sections.forEach(([, sec]) => {
-    Object.values(sec).forEach((field) => {
+    getSectionEntries(sec).forEach(([, field]) => {
       if (!isResultField(field)) return;
       const s = getStatus(field.value, field.referenceRange);
       if (s === "normal") normal++;
@@ -379,6 +406,7 @@ function ReportViewer({ report, reportId, reportName, patient = {}, labInfo = LA
   const resolvedReportName = report.name || reportName || "Lab Report";
   const filename = `${resolvedReportName.replace(/\s+/g, "_")}_report.pdf`;
 
+  // Filter out meta keys (_id, name) to get real section entries
   const sections = Object.entries(report).filter(
     ([key, val]) =>
       key !== "_id" && key !== "name" && val !== null && typeof val === "object" && !Array.isArray(val) && !val.$oid,
@@ -387,7 +415,6 @@ function ReportViewer({ report, reportId, reportName, patient = {}, labInfo = LA
   const id = report._id?.$oid || reportId || "";
   const shortId = id.length > 16 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
 
-  // Shared PDF blob generator using @react-pdf/renderer
   const generateBlob = () =>
     pdf(
       <ReportPDFDocument
@@ -399,7 +426,6 @@ function ReportViewer({ report, reportId, reportName, patient = {}, labInfo = LA
       />,
     ).toBlob();
 
-  // ── Print ──
   const handlePrint = () => {
     const html = buildPrintHTML({ reportName: resolvedReportName, shortId, mergedPatient, labInfo, sections });
     const win = window.open("", "_blank", "width=820,height=950");
@@ -413,7 +439,6 @@ function ReportViewer({ report, reportId, reportName, patient = {}, labInfo = LA
     win.onload = () => win.print();
   };
 
-  // ── Download — direct save, no dialog ──
   const handleDownload = async () => {
     setDlStatus("loading");
     try {
@@ -436,7 +461,6 @@ function ReportViewer({ report, reportId, reportName, patient = {}, labInfo = LA
     }
   };
 
-  // ── Share — share actual PDF file ──
   const handleShare = async () => {
     setShareStatus("loading");
     try {
@@ -446,7 +470,6 @@ function ReportViewer({ report, reportId, reportName, patient = {}, labInfo = LA
         await navigator.share({ files: [file], title: resolvedReportName });
         setShareStatus("done");
       } else {
-        // Fallback: just download it
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -564,12 +587,18 @@ function ReportViewer({ report, reportId, reportName, patient = {}, labInfo = LA
 
         <div className="px-5 pt-4 pb-4">
           {sections.map(([sectionName, sectionData], i) => (
-            <Section key={sectionName} sectionName={sectionName} sectionData={sectionData} index={i} />
+            <Section
+              key={sectionName}
+              sectionName={sectionName}
+              sectionData={sectionData}
+              index={i}
+              showHeader={sectionData.__showTitle !== false}
+            />
           ))}
         </div>
       </div>
 
-      {/* Footer — below the card on screen */}
+      {/* Footer */}
       <div className="mt-8 pt-6 border-t border-slate-200">
         <div className="grid grid-cols-2 gap-8 mb-5">
           <div>
