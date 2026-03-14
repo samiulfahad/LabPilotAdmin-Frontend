@@ -37,6 +37,7 @@ const useSchemaStore = create((set, get) => ({
     name: "",
     description: "",
     testId: "",
+    version: "V1",
     isActive: true,
     hasStaticStandardRange: false,
     staticStandardRange: "",
@@ -715,7 +716,6 @@ function SectionCard({ section, index, total, fieldErrors }) {
   const { updateSection, removeSection, addField } = useSchemaStore();
   const hasSectionError = section.fields.some((f) => fieldErrors[f.id]);
 
-  // showTitleInReport defaults to true if not set (backward compat)
   const showTitle = section.showTitleInReport !== false;
 
   return (
@@ -737,7 +737,6 @@ function SectionCard({ section, index, total, fieldErrors }) {
             {section.fields.length} field{section.fields.length !== 1 ? "s" : ""}
           </span>
 
-          {/* ── Show Title in Report toggle ── */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -812,9 +811,9 @@ function SectionCard({ section, index, total, fieldErrors }) {
   );
 }
 
-import SchemaRenderer from "../schemaRenderer/SchemaRenderer";
-import schemaService from "../../services/schemaService";
-import testService from "../../services/testService";
+import SchemaRenderer from "../../schemaRenderer/v1/SchemaRenderer";
+import schemaService from "../../../services/schemaService";
+import testService from "../../../services/testService";
 
 function SkeletonLoader() {
   return (
@@ -834,10 +833,10 @@ function SkeletonLoader() {
 function normalizeSchema(apiSchema) {
   return {
     ...apiSchema,
+    version: apiSchema.version || "V1",
     sections: (apiSchema.sections || []).map((sec) => ({
       ...sec,
       id: sec.id ?? sec._id ?? Date.now() + Math.random(),
-      // preserve existing showTitleInReport; default true for legacy sections
       showTitleInReport: sec.showTitleInReport !== false,
       fields: (sec.fields || []).map((f) => ({
         ...f,
@@ -938,12 +937,12 @@ export default function SchemaBuilder() {
     name: schema.name,
     description: schema.description,
     testId: schema.testId,
+    version: schema.version || "V1",
     isActive: schema.isActive,
     hasStaticStandardRange: schema.hasStaticStandardRange,
     staticStandardRange: schema.staticStandardRange,
     sections: schema.sections.map(({ id, ...sec }) => ({
       ...sec,
-      // include showTitleInReport in the saved payload
       showTitleInReport: sec.showTitleInReport !== false,
       fields: sec.fields.map(({ id, ...f }) => f),
     })),
@@ -1035,14 +1034,27 @@ export default function SchemaBuilder() {
                 {schema.name || (
                   <span className="text-gray-400 font-normal italic">{isEditMode ? "Edit Schema" : "New Schema"}</span>
                 )}
+                {/* ── Version badge ── */}
+                {schema.version && (
+                  <span className="text-xs font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-full border border-indigo-100 tracking-wide">
+                    {schema.version}
+                  </span>
+                )}
                 {isEditMode && (
                   <span className="text-xs font-normal px-2 py-0.5 bg-blue-50 text-blue-500 rounded-full border border-blue-100">
                     Editing
                   </span>
                 )}
               </h1>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {schema.testId ? `Test · ${tests.find((t) => t._id === schema.testId)?.name || "—"}` : ""}
+              {/* ── Subtitle: Test name + testId ── */}
+              <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
+                {schema.testId && (
+                  <>
+                    <span>Test · {tests.find((t) => t._id === schema.testId)?.name || "—"}</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="font-mono text-gray-300">{schema.testId}</span>
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -1123,6 +1135,8 @@ export default function SchemaBuilder() {
                   error={errors.testId}
                 />
               </div>
+
+              {/* ── Schema Name + Description ── */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1.5">
@@ -1131,7 +1145,7 @@ export default function SchemaBuilder() {
                   <input
                     value={schema.name}
                     onChange={(e) => setSchemaField("name", e.target.value)}
-                    placeholder="e.g. Complete Blood Count v1"
+                    placeholder="e.g. Complete Blood Count"
                     className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all ${
                       errors.name ? "border-red-400" : "border-gray-200"
                     }`}

@@ -538,14 +538,6 @@ export function getRangeStatus(value, range) {
   return "normal";
 }
 
-// ─── Hydrate values from existing report data ─────────────────────────────────
-// existingReport shape (what reportService.addReport saves):
-// {
-//   name: "rbs",
-//   "Section A": { "Simple Number": { value: "5", unit: "mmHg", referenceRange: "1-10" }, ... , __showTitle: true },
-//   "Section B": { "Result": { value: "Positive" }, ... , __showTitle: true },
-//   invoiceId, patientName, patientAge, patientGender   (optional)
-// }
 export function hydrateValuesFromReport(schema, existingReport) {
   if (!existingReport || !schema?.sections) return {};
   const values = {};
@@ -556,7 +548,6 @@ export function hydrateValuesFromReport(schema, existingReport) {
       const key = `${si}_${field.name}`;
       const fieldData = sectionData[field.name];
       if (!fieldData) return;
-      // checkbox values are stored as arrays, everything else as primitives
       values[key] = fieldData.value ?? fieldData;
     });
   });
@@ -846,7 +837,6 @@ function CheckboxField({ field, options = [], value = [], onChange, error, origi
     isEditMode &&
     originalValue !== undefined &&
     JSON.stringify([...(value || [])].sort()) !== JSON.stringify([...origArr].sort());
-
   return (
     <div>
       <div
@@ -888,8 +878,7 @@ function CheckboxField({ field, options = [], value = [], onChange, error, origi
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {options.map((opt) => {
           const checked = value.includes(opt);
-          const wasOriginal = origArr.includes(opt);
-          const optChanged = isEditMode && originalValue !== undefined && checked !== wasOriginal;
+          const optChanged = isEditMode && originalValue !== undefined && checked !== origArr.includes(opt);
           return (
             <button
               key={opt}
@@ -1037,11 +1026,9 @@ function SectionPanel({
   isEditMode,
 }) {
   const [collapsed, setCollapsed] = useState(false);
-
   const fieldCount = section.fields.length;
   const filledCount = section.fields.filter((f) => {
-    const key = `${sectionIndex}_${f.name}`;
-    const v = values[key];
+    const v = values[`${sectionIndex}_${f.name}`];
     return Array.isArray(v) ? v.length > 0 : v !== "" && v !== undefined && v !== null;
   }).length;
   const hasError = section.fields.some((f) => errors[`${sectionIndex}_${f.name}`]);
@@ -1160,7 +1147,7 @@ function SectionPanel({
   );
 }
 
-// ─── Patient Context Banner ───────────────────────────────────────────────────
+// ─── Patient Banners ──────────────────────────────────────────────────────────
 function InvoicePatientBanner({ invoice }) {
   return (
     <div className="sr-patient-banner">
@@ -1208,7 +1195,6 @@ function InvoicePatientBanner({ invoice }) {
   );
 }
 
-// ─── Manual Patient Context ───────────────────────────────────────────────────
 function ManualPatientContext({ patientAge, setPatientAge, patientGender, setPatientGender }) {
   const floated = patientAge !== "" && patientAge !== null && patientAge !== undefined;
   return (
@@ -1280,7 +1266,7 @@ function ManualPatientContext({ patientAge, setPatientAge, patientGender, setPat
   );
 }
 
-// ─── Build report payload (shared between create & update) ────────────────────
+// ─── Build Payload ────────────────────────────────────────────────────────────
 function buildPayload(schema, values, patientAge, patientGender, invoice) {
   const report = {};
   schema.sections.forEach((sec, si) => {
@@ -1305,7 +1291,6 @@ function buildPayload(schema, values, patientAge, patientGender, invoice) {
       report[sec.name] = { ...sectionData, __showTitle: sec.showTitleInReport !== false };
     }
   });
-
   return {
     ...report,
     name: schema.name,
@@ -1321,40 +1306,119 @@ function buildPayload(schema, values, patientAge, patientGender, invoice) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-/**
- * SchemaRenderer
- *
- * Props:
- *  - schema        {object}   – the schema definition (sections, fields, etc.)
- *  - invoice       {object?}  – optional patient/invoice context
- *  - onSubmit      {fn}       – called with payload on create  (upload mode)
- *  - onUpdate      {fn}       – called with payload on update  (edit mode)
- *  - loading       {boolean}  – disables submit while in-flight
- *  - existingReport {object?} – pre-filled report data → activates edit mode
- *    Shape: the exact object previously passed to onSubmit / returned by API
- */
 function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, existingReport = null }) {
   const isEditMode = Boolean(existingReport);
-
-  // Hydrate initial values: if edit mode, seed from existingReport; otherwise empty
   const computeInitialValues = () => (isEditMode ? hydrateValuesFromReport(schema, existingReport) : {});
 
   const [values, setValues] = useState(computeInitialValues);
   const [errors, setErrors] = useState({});
-
-  // Original values snapshot for diff/highlight — only meaningful in edit mode
   const [originalValues] = useState(() => (isEditMode ? hydrateValuesFromReport(schema, existingReport) : {}));
-
   const [patientAge, setPatientAge] = useState(invoice?.age ?? existingReport?.patientAge ?? "");
   const [patientGender, setPatientGender] = useState(invoice?.gender ?? existingReport?.patientGender ?? "");
 
   if (!schema || !schema.sections) return null;
 
-  // Re-hydrate if schema or existingReport changes (e.g. navigation between reports)
+  // ── V1 version guard ──────────────────────────────────────────────────────
+  if (schema.version !== "V1") {
+    return (
+      <div
+        className="sr-root"
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}
+      >
+        <StyleInjector />
+        <div
+          style={{
+            background: "var(--white)",
+            border: "1.5px solid var(--border)",
+            borderRadius: 14,
+            padding: "40px 36px",
+            maxWidth: 420,
+            width: "100%",
+            textAlign: "center",
+            boxShadow: "0 4px 20px rgba(11,15,26,0.07)",
+          }}
+        >
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 10,
+              background: "var(--surface)",
+              border: "1.5px solid var(--border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+            }}
+          >
+            <FlaskConical style={{ width: 22, height: 22, color: "#9ea5b8" }} />
+          </div>
+          <div
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 10,
+              fontWeight: 500,
+              color: "#9ea5b8",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              marginBottom: 8,
+            }}
+          >
+            Unsupported Schema Version
+          </div>
+          <p
+            style={{
+              fontFamily: "'Syne',sans-serif",
+              fontSize: 18,
+              fontWeight: 800,
+              color: "var(--ink)",
+              letterSpacing: "-0.02em",
+              marginBottom: 10,
+            }}
+          >
+            This renderer requires V1
+          </p>
+          <p style={{ fontSize: 13, color: "#7a82a0", lineHeight: 1.6, marginBottom: 20 }}>
+            The schema <strong style={{ color: "var(--ink)", fontWeight: 600 }}>{schema.name || "Untitled"}</strong>{" "}
+            uses version{" "}
+            <code
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 12,
+                background: "var(--surface)",
+                padding: "1px 7px",
+                borderRadius: 4,
+                border: "1px solid var(--border)",
+              }}
+            >
+              {schema.version ?? "unknown"}
+            </code>
+            , which is not supported here. Please use the appropriate renderer for this schema version.
+          </p>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "var(--surface)",
+              border: "1.5px solid var(--border)",
+              borderRadius: 20,
+              padding: "5px 14px",
+            }}
+          >
+            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "#9ea5b8" }}>Compatible:</span>
+            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 500, color: "var(--ink)" }}>
+              V1
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   useEffect(() => {
     setValues(computeInitialValues());
     setErrors({});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(schema?.sections), JSON.stringify(existingReport)]);
 
   useEffect(() => {
@@ -1386,27 +1450,23 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
     return errs;
   };
 
-  // Count changed fields for the edit-mode stats
+  const allSchemaKeys = schema.sections.flatMap((sec, si) => sec.fields.map((f) => `${si}_${f.name}`));
   const changedCount = isEditMode
     ? Object.keys(originalValues).filter((k) => {
-        const cur = values[k];
-        const orig = originalValues[k];
+        const cur = values[k],
+          orig = originalValues[k];
         if (Array.isArray(orig)) return JSON.stringify([...(cur || [])].sort()) !== JSON.stringify([...orig].sort());
         return String(cur ?? "") !== String(orig ?? "");
       }).length
     : 0;
-
-  // Also count newly filled fields that were empty before
-  const allSchemaKeys = schema.sections.flatMap((sec, si) => sec.fields.map((f) => `${si}_${f.name}`));
   const newlyFilled = isEditMode
     ? allSchemaKeys.filter((k) => {
-        const cur = values[k];
-        const orig = originalValues[k];
+        const cur = values[k],
+          orig = originalValues[k];
         const isEmpty = (v) => v === "" || v === undefined || v === null || (Array.isArray(v) && v.length === 0);
         return isEmpty(orig) && !isEmpty(cur);
       }).length
     : 0;
-
   const totalChanges = changedCount + newlyFilled;
 
   const handleSubmit = () => {
@@ -1417,21 +1477,12 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
     }
     setErrors({});
     const payload = buildPayload(schema, values, patientAge, patientGender, invoice);
-
-    if (isEditMode) {
-      onUpdate?.(payload);
-    } else {
-      onSubmit?.(payload);
-    }
+    if (isEditMode) onUpdate?.(payload);
+    else onSubmit?.(payload);
   };
 
   const handleReset = () => {
-    if (isEditMode) {
-      // In edit mode: reset back to the originally loaded data
-      setValues(hydrateValuesFromReport(schema, existingReport));
-    } else {
-      setValues({});
-    }
+    setValues(isEditMode ? hydrateValuesFromReport(schema, existingReport) : {});
     setErrors({});
   };
 
@@ -1441,14 +1492,12 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
     ),
   );
   const hasFields = schema.sections.some((s) => s.fields.length > 0);
-
   const totalFields = allSchemaKeys.length;
   const totalFilled = allSchemaKeys.filter((k) => {
     const v = values[k];
     return Array.isArray(v) ? v.length > 0 : v !== "" && v !== undefined && v !== null;
   }).length;
   const progress = totalFields > 0 ? (totalFilled / totalFields) * 100 : null;
-
   const allNumericFields = schema.sections.flatMap((sec, si) =>
     sec.fields
       .filter((f) => f.type === "number")
@@ -1481,7 +1530,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
     <div className="sr-root">
       <StyleInjector />
       <div style={{ maxWidth: 1600, margin: "0 auto", padding: "24px 16px 48px" }}>
-        {/* ── Mode banner ── */}
+        {/* Mode banner */}
         {isEditMode && (
           <div className="sr-mode-banner edit-mode">
             <span className="sr-mode-dot" />
@@ -1519,7 +1568,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
             <div
@@ -1589,7 +1638,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
             </div>
           </div>
 
-          {/* Stats Row */}
           <div className="sr-stats-row">
             {progress !== null && (
               <div className="sr-stat-cell">
@@ -1620,7 +1668,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
             )}
           </div>
 
-          {/* Progress bar */}
           {progress !== null && (
             <div style={{ marginTop: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
@@ -1654,7 +1701,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           )}
         </div>
 
-        {/* Alerts */}
         {abnormalCount > 0 && (
           <div className="sr-alert amber" style={{ marginBottom: 14 }}>
             <AlertTriangle style={{ width: 16, height: 16, color: "var(--amber)", flexShrink: 0, marginTop: 1 }} />
@@ -1668,7 +1714,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
-        {/* Edit mode changes summary */}
         {isEditMode && totalChanges > 0 && (
           <div className="sr-alert violet" style={{ marginBottom: 14 }}>
             <Pencil style={{ width: 15, height: 15, color: "var(--violet)", flexShrink: 0, marginTop: 1 }} />
@@ -1682,7 +1727,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
-        {/* Patient Banner */}
         {invoice ? (
           <div style={{ marginBottom: 16 }}>
             <InvoicePatientBanner invoice={invoice} />
@@ -1700,7 +1744,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           )
         )}
 
-        {/* Sections */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
           {schema.sections.map((section, si) => (
             <SectionPanel
@@ -1719,7 +1762,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           ))}
         </div>
 
-        {/* Static Range Note */}
         {schema.hasStaticStandardRange && schema.staticStandardRange && (
           <div className="sr-alert amber" style={{ marginBottom: 14 }}>
             <Info style={{ width: 15, height: 15, color: "var(--amber)", flexShrink: 0, marginTop: 1 }} />
@@ -1730,7 +1772,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
-        {/* Validation Errors */}
         {Object.keys(errors).length > 0 && (
           <div className="sr-alert red" style={{ marginBottom: 14 }}>
             <XCircle style={{ width: 15, height: 15, color: "var(--red)", flexShrink: 0, marginTop: 1 }} />
@@ -1744,7 +1785,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
-        {/* Action Bar */}
         <div
           style={{
             display: "flex",
