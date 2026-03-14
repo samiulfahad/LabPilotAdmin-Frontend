@@ -15,8 +15,6 @@ import {
   ShieldCheck,
   Pencil,
   Save,
-  Clock,
-  CheckCheck,
 } from "lucide-react";
 
 // ─── Inject global styles ─────────────────────────────────────────────────────
@@ -64,9 +62,6 @@ const STYLES = `
   .sr-mode-banner.edit-mode .sr-mode-dot {
     width: 6px; height: 6px; border-radius: 50%; background: var(--violet); flex-shrink: 0;
     animation: srpulse 1.8s ease-in-out infinite;
-  }
-  .sr-mode-banner.view-mode {
-    background: var(--emerald-light); border-color: rgba(26,158,110,0.25); color: #065f46;
   }
 
   /* ── Card ── */
@@ -136,7 +131,6 @@ const STYLES = `
   .sr-field-wrap.field-error   { border-color: var(--red);     box-shadow: 0 0 0 3px rgba(214,58,58,0.08); background: var(--red-light); }
   .sr-field-wrap.edited-highlight { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(124,58,237,0.08); }
 
-  /* Floating label */
   .sr-float-label {
     position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
     font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
@@ -160,7 +154,6 @@ const STYLES = `
     background: var(--amber); margin-left: 3px; vertical-align: middle; margin-bottom: 1px;
   }
 
-  /* Input inside float-label wrap */
   .sr-float-input {
     width: 100%; padding: 18px 14px 8px 12px;
     background: transparent; border: none; outline: none;
@@ -171,7 +164,6 @@ const STYLES = `
   .sr-float-input::-webkit-outer-spin-button,
   .sr-float-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-  /* Unit tag */
   .sr-unit-tag {
     position: absolute; right: 0; top: 0; height: 100%;
     padding: 0 12px; display: flex; align-items: center;
@@ -182,7 +174,6 @@ const STYLES = `
     pointer-events: none; user-select: none;
   }
 
-  /* Range row */
   .sr-range-row {
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
     margin-top: 5px; min-height: 16px;
@@ -200,7 +191,6 @@ const STYLES = `
   .sr-status-badge.low    { background: var(--orange-light);  color: var(--orange);  border-color: rgba(217,115,22,0.2); }
   .sr-status-badge.high   { background: var(--red-light);     color: var(--red);     border-color: rgba(214,58,58,0.2); }
 
-  /* Changed badge */
   .sr-changed-badge {
     display: inline-flex; align-items: center; gap: 3px;
     padding: 2px 6px; border-radius: 4px;
@@ -331,7 +321,6 @@ const STYLES = `
     font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--ink); min-height: 52px;
   }
   .sr-text-input::placeholder { color: transparent; }
-  .sr-char-count { font-family: 'DM Mono', monospace; font-size: 10px; color: #b0b7cc; text-align: right; padding: 2px 10px 6px; }
 
   /* ── Tooltip ── */
   .sr-tooltip-wrap { position: relative; display: inline-flex; }
@@ -354,7 +343,6 @@ const STYLES = `
   .sr-tooltip-row span { color: #e8eaf0; font-weight: 500; }
   .sr-info-btn { background: none; border: none; cursor: pointer; padding: 0; display: inline-flex; line-height: 0; }
 
-  /* ── Warn context ── */
   .sr-context-warn {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 10px; color: var(--amber); font-weight: 600; font-family: 'DM Mono', monospace;
@@ -374,16 +362,16 @@ const STYLES = `
 
   /* ── Alert boxes ── */
   .sr-alert { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-radius: 10px; border: 1.5px solid; }
-  .sr-alert.amber { background: var(--amber-light); border-color: rgba(232,160,32,0.35); }
-  .sr-alert.red   { background: var(--red-light);   border-color: rgba(214,58,58,0.25); }
+  .sr-alert.amber  { background: var(--amber-light);  border-color: rgba(232,160,32,0.35); }
+  .sr-alert.red    { background: var(--red-light);    border-color: rgba(214,58,58,0.25); }
   .sr-alert.violet { background: var(--violet-light); border-color: rgba(124,58,237,0.25); }
   .sr-alert-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-  .sr-alert.amber .sr-alert-title { color: #8a5a08; }
-  .sr-alert.red   .sr-alert-title { color: #8b1a1a; }
+  .sr-alert.amber  .sr-alert-title { color: #8a5a08; }
+  .sr-alert.red    .sr-alert-title { color: #8b1a1a; }
   .sr-alert.violet .sr-alert-title { color: #5b21b6; }
-  .sr-alert-body  { font-size: 12px; margin-top: 2px; }
-  .sr-alert.amber .sr-alert-body { color: #a06c0e; }
-  .sr-alert.red   .sr-alert-body { color: #b02020; }
+  .sr-alert-body { font-size: 12px; margin-top: 2px; }
+  .sr-alert.amber  .sr-alert-body { color: #a06c0e; }
+  .sr-alert.red    .sr-alert-body { color: #b02020; }
   .sr-alert.violet .sr-alert-body { color: #6d28d9; }
 
   /* ── Buttons ── */
@@ -456,7 +444,6 @@ const STYLES = `
   .sr-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; }
   .sr-empty-icon { width: 56px; height: 56px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
 
-  /* ── Fields grid ── */
   .sr-fields-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -464,29 +451,26 @@ const STYLES = `
     padding: 20px 16px;
   }
 
-  /* ── Responsive breakpoints ── */
   @media (max-width: 640px) {
     .sr-patient-banner-body { grid-template-columns: 1fr 1fr; }
     .sr-patient-cell:nth-child(2) { border-right: none; }
     .sr-patient-cell:nth-child(3) { border-top: 1px solid var(--surface-3); }
     .sr-patient-cell:nth-child(4) { border-top: 1px solid var(--surface-3); border-right: none; }
-
-    .sr-stats-row   { flex-wrap: wrap; }
-    .sr-stat-cell   { min-width: calc(50% - 1px); flex: none; width: calc(50% - 1px); }
+    .sr-stats-row { flex-wrap: wrap; }
+    .sr-stat-cell { min-width: calc(50% - 1px); flex: none; width: calc(50% - 1px); }
     .sr-stat-cell:nth-child(1) { border-radius: 10px 0 0 0; }
     .sr-stat-cell:nth-child(2) { border-radius: 0 10px 0 0; }
     .sr-stat-cell:nth-child(3) { border-radius: 0 0 0 10px; }
     .sr-stat-cell:nth-child(4) { border-radius: 0 0 10px 0; }
     .sr-stat-val { font-size: 16px; }
-
     .sr-fields-grid { grid-template-columns: 1fr 1fr; padding: 14px 12px; gap: 12px; }
     .sr-btn-submit, .sr-btn-reset { padding: 11px 14px; font-size: 11px; }
   }
 
   @media (max-width: 380px) {
     .sr-fields-grid { grid-template-columns: 1fr; }
-    .sr-stats-row   { flex-direction: column; }
-    .sr-stat-cell   { width: 100%; min-width: 100%; border-radius: 0 !important; }
+    .sr-stats-row { flex-direction: column; }
+    .sr-stat-cell { width: 100%; min-width: 100%; border-radius: 0 !important; }
     .sr-stat-cell:first-child { border-radius: 10px 10px 0 0 !important; }
     .sr-stat-cell:last-child  { border-radius: 0 0 10px 10px !important; }
   }
@@ -614,9 +598,7 @@ function NumberField({ field, value, onChange, error, patientAge, patientGender,
   const range = getStandardRange(field, patientAge, patientGender);
   const status = getRangeStatus(value, range);
   const hasValue = value !== "" && value !== null && value !== undefined;
-  const floated = hasValue;
   const isChanged = isEditMode && originalValue !== undefined && String(value) !== String(originalValue ?? "");
-
   const needsContext =
     ((field.standardRange?.type === "age" || field.standardRange?.type === "combined") && !patientAge) ||
     ((field.standardRange?.type === "gender" || field.standardRange?.type === "combined") && !patientGender);
@@ -625,7 +607,7 @@ function NumberField({ field, value, onChange, error, patientAge, patientGender,
   if (error) wrapCls += " field-error";
   else if (isChanged) wrapCls += " edited-highlight";
   else if (hasValue && range && status !== "neutral") wrapCls += ` status-${status}`;
-  if (floated) wrapCls += " floated";
+  if (hasValue) wrapCls += " floated";
 
   return (
     <div>
@@ -771,11 +753,10 @@ function RadioField({ field, options = [], value, onChange, error, originalValue
 // ─── Dropdown ─────────────────────────────────────────────────────────────────
 function DropdownField({ field, options = [], value, onChange, error, originalValue, isEditMode }) {
   const [open, setOpen] = useState(false);
-  const floated = !!value;
   const isChanged = isEditMode && originalValue !== undefined && value !== (originalValue ?? "");
   return (
     <div>
-      <div className={`sr-dropdown-wrap ${floated ? "floated" : ""}`}>
+      <div className={`sr-dropdown-wrap ${value ? "floated" : ""}`}>
         <button
           type="button"
           onClick={() => setOpen(!open)}
@@ -1318,104 +1299,6 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
 
   if (!schema || !schema.sections) return null;
 
-  // ── V1 version guard ──────────────────────────────────────────────────────
-  if (schema.version !== "V1") {
-    return (
-      <div
-        className="sr-root"
-        style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}
-      >
-        <StyleInjector />
-        <div
-          style={{
-            background: "var(--white)",
-            border: "1.5px solid var(--border)",
-            borderRadius: 14,
-            padding: "40px 36px",
-            maxWidth: 420,
-            width: "100%",
-            textAlign: "center",
-            boxShadow: "0 4px 20px rgba(11,15,26,0.07)",
-          }}
-        >
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 10,
-              background: "var(--surface)",
-              border: "1.5px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-            }}
-          >
-            <FlaskConical style={{ width: 22, height: 22, color: "#9ea5b8" }} />
-          </div>
-          <div
-            style={{
-              fontFamily: "'DM Mono',monospace",
-              fontSize: 10,
-              fontWeight: 500,
-              color: "#9ea5b8",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              marginBottom: 8,
-            }}
-          >
-            Unsupported Schema Version
-          </div>
-          <p
-            style={{
-              fontFamily: "'Syne',sans-serif",
-              fontSize: 18,
-              fontWeight: 800,
-              color: "var(--ink)",
-              letterSpacing: "-0.02em",
-              marginBottom: 10,
-            }}
-          >
-            This renderer requires V1
-          </p>
-          <p style={{ fontSize: 13, color: "#7a82a0", lineHeight: 1.6, marginBottom: 20 }}>
-            The schema <strong style={{ color: "var(--ink)", fontWeight: 600 }}>{schema.name || "Untitled"}</strong>{" "}
-            uses version{" "}
-            <code
-              style={{
-                fontFamily: "'DM Mono',monospace",
-                fontSize: 12,
-                background: "var(--surface)",
-                padding: "1px 7px",
-                borderRadius: 4,
-                border: "1px solid var(--border)",
-              }}
-            >
-              {schema.version ?? "unknown"}
-            </code>
-            , which is not supported here. Please use the appropriate renderer for this schema version.
-          </p>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              background: "var(--surface)",
-              border: "1.5px solid var(--border)",
-              borderRadius: 20,
-              padding: "5px 14px",
-            }}
-          >
-            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "#9ea5b8" }}>Compatible:</span>
-            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, fontWeight: 500, color: "var(--ink)" }}>
-              V1
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     setValues(computeInitialValues());
     setErrors({});
@@ -1498,16 +1381,14 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
     return Array.isArray(v) ? v.length > 0 : v !== "" && v !== undefined && v !== null;
   }).length;
   const progress = totalFields > 0 ? (totalFilled / totalFields) * 100 : null;
-  const allNumericFields = schema.sections.flatMap((sec, si) =>
+
+  const allNumericStatuses = schema.sections.flatMap((sec, si) =>
     sec.fields
       .filter((f) => f.type === "number")
-      .map((f) => {
-        const range = getStandardRange(f, patientAge, patientGender);
-        return getRangeStatus(values[`${si}_${f.name}`], range);
-      }),
+      .map((f) => getRangeStatus(values[`${si}_${f.name}`], getStandardRange(f, patientAge, patientGender))),
   );
-  const abnormalCount = allNumericFields.filter((s) => s === "high" || s === "low").length;
-  const normalCount = allNumericFields.filter((s) => s === "normal").length;
+  const abnormalCount = allNumericStatuses.filter((s) => s === "high" || s === "low").length;
+  const normalCount = allNumericStatuses.filter((s) => s === "normal").length;
 
   if (!hasFields) {
     return (
@@ -1701,6 +1582,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           )}
         </div>
 
+        {/* Alerts */}
         {abnormalCount > 0 && (
           <div className="sr-alert amber" style={{ marginBottom: 14 }}>
             <AlertTriangle style={{ width: 16, height: 16, color: "var(--amber)", flexShrink: 0, marginTop: 1 }} />
@@ -1727,6 +1609,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
+        {/* Patient banner */}
         {invoice ? (
           <div style={{ marginBottom: 16 }}>
             <InvoicePatientBanner invoice={invoice} />
@@ -1744,6 +1627,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           )
         )}
 
+        {/* Sections */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
           {schema.sections.map((section, si) => (
             <SectionPanel
@@ -1762,6 +1646,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           ))}
         </div>
 
+        {/* Static range note */}
         {schema.hasStaticStandardRange && schema.staticStandardRange && (
           <div className="sr-alert amber" style={{ marginBottom: 14 }}>
             <Info style={{ width: 15, height: 15, color: "var(--amber)", flexShrink: 0, marginTop: 1 }} />
@@ -1772,6 +1657,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
+        {/* Validation errors */}
         {Object.keys(errors).length > 0 && (
           <div className="sr-alert red" style={{ marginBottom: 14 }}>
             <XCircle style={{ width: 15, height: 15, color: "var(--red)", flexShrink: 0, marginTop: 1 }} />
@@ -1785,6 +1671,7 @@ function SchemaRenderer({ schema, invoice, onSubmit, onUpdate, loading = false, 
           </div>
         )}
 
+        {/* Action bar */}
         <div
           style={{
             display: "flex",

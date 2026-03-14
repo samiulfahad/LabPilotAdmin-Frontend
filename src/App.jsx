@@ -7,10 +7,10 @@ import Zone from "./pages/zone";
 import TestList from "./pages/testList";
 import LabManagement from "./pages/labManagement";
 import SchemaList from "./pages/schemaList";
-import SchemaBuilder from "./pages/schemaBuilder/v1";
-import SchemaRenderer from "./pages/schemaRenderer/v1";
+import SchemaBuilder from "./pages/schemaBuilder";
+import SchemaRenderer from "./pages/schemaRenderer";
 
-import UnderConstruction from "./pages/schemaBuilder/v1";
+import UnderConstruction from "./pages/schemaBuilder";
 import ReportViewer from "./pages/reportViewer";
 import ReportList from "./pages/reports";
 

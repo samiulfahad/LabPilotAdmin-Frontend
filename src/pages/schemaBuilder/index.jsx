@@ -9,7 +9,6 @@ import {
   Search,
   CheckCircle2,
   XCircle,
-  Layers,
   FlaskConical,
   AlignLeft,
   Hash,
@@ -37,7 +36,6 @@ const useSchemaStore = create((set, get) => ({
     name: "",
     description: "",
     testId: "",
-    version: "V1",
     isActive: true,
     hasStaticStandardRange: false,
     staticStandardRange: "",
@@ -126,10 +124,7 @@ const useSchemaStore = create((set, get) => ({
         ...s.schema,
         sections: s.schema.sections.map((sec) =>
           sec.id === sectionId
-            ? {
-                ...sec,
-                fields: sec.fields.map((f) => (f.id === fieldId ? { ...f, [key]: value } : f)),
-              }
+            ? { ...sec, fields: sec.fields.map((f) => (f.id === fieldId ? { ...f, [key]: value } : f)) }
             : sec,
         ),
       },
@@ -297,53 +292,31 @@ function AgeRangeInput({ data = [], onChange }) {
   const update = (i, key, val) => onChange(rows.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
 
   const handleMaxAgeBlur = (i, val) => {
-    if (val === "" || val === null || val === undefined) {
-      update(i, "maxAge", 999);
-    }
+    if (val === "" || val === null || val === undefined) update(i, "maxAge", 999);
   };
 
   return (
     <div className="space-y-2">
       {rows.map((row, i) => (
         <div key={i} className="grid grid-cols-5 gap-2 items-center p-2 bg-gray-50 rounded-lg border border-gray-200">
-          <div>
-            <label className="text-xs text-gray-400 block mb-0.5">Min Age</label>
-            <input
-              type="number"
-              value={row.minAge || ""}
-              onChange={(e) => update(i, "minAge", e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-0.5">Max Age</label>
-            <input
-              type="number"
-              value={row.maxAge === 999 || row.maxAge === "" ? "" : row.maxAge || ""}
-              placeholder="∞ (no limit)"
-              onChange={(e) => update(i, "maxAge", e.target.value)}
-              onBlur={(e) => handleMaxAgeBlur(i, e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-0.5">Min Val</label>
-            <input
-              type="number"
-              value={row.minValue || ""}
-              onChange={(e) => update(i, "minValue", e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-0.5">Max Val</label>
-            <input
-              type="number"
-              value={row.maxValue || ""}
-              onChange={(e) => update(i, "maxValue", e.target.value)}
-              className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-            />
-          </div>
+          {[
+            ["minAge", "Min Age", false],
+            ["maxAge", "Max Age", true],
+            ["minValue", "Min Val", false],
+            ["maxValue", "Max Val", false],
+          ].map(([k, lbl, isMaxAge]) => (
+            <div key={k}>
+              <label className="text-xs text-gray-400 block mb-0.5">{lbl}</label>
+              <input
+                type="number"
+                value={isMaxAge && (row[k] === 999 || row[k] === "") ? "" : row[k] || ""}
+                placeholder={isMaxAge ? "∞ (no limit)" : ""}
+                onChange={(e) => update(i, k, e.target.value)}
+                onBlur={isMaxAge ? (e) => handleMaxAgeBlur(i, e.target.value) : undefined}
+                className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+              />
+            </div>
+          ))}
           <button
             onClick={() => removeRow(i)}
             className="mt-4 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -377,24 +350,17 @@ function GenderRangeInput({ data = {}, onChange }) {
             </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">Min</label>
-              <input
-                type="number"
-                value={data[gender]?.min || ""}
-                onChange={(e) => update(gender, "min", e.target.value)}
-                className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">Max</label>
-              <input
-                type="number"
-                value={data[gender]?.max || ""}
-                onChange={(e) => update(gender, "max", e.target.value)}
-                className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
-              />
-            </div>
+            {["min", "max"].map((k) => (
+              <div key={k}>
+                <label className="text-xs text-gray-400 mb-1 block capitalize">{k}</label>
+                <input
+                  type="number"
+                  value={data[gender]?.[k] || ""}
+                  onChange={(e) => update(gender, k, e.target.value)}
+                  className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+                />
+              </div>
+            ))}
           </div>
         </div>
       ))}
@@ -435,13 +401,9 @@ function CombinedRangeInput({ data = [], onChange }) {
                 type="number"
                 value={k === "maxAge" && (row[k] === 999 || row[k] === "") ? "" : row[k] || ""}
                 placeholder={k === "maxAge" ? "∞ (no limit)" : ""}
-                onChange={(e) => {
-                  update(i, k, e.target.value === "" ? "" : Number(e.target.value));
-                }}
+                onChange={(e) => update(i, k, e.target.value === "" ? "" : Number(e.target.value))}
                 onBlur={(e) => {
-                  if (k === "maxAge" && (e.target.value === "" || e.target.value === null)) {
-                    update(i, "maxAge", 999);
-                  }
+                  if (k === "maxAge" && e.target.value === "") update(i, "maxAge", 999);
                 }}
                 className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
               />
@@ -715,7 +677,6 @@ function SectionCard({ section, index, total, fieldErrors }) {
   const [expanded, setExpanded] = useState(true);
   const { updateSection, removeSection, addField } = useSchemaStore();
   const hasSectionError = section.fields.some((f) => fieldErrors[f.id]);
-
   const showTitle = section.showTitleInReport !== false;
 
   return (
@@ -736,7 +697,6 @@ function SectionCard({ section, index, total, fieldErrors }) {
           <span className="text-xs text-gray-400">
             {section.fields.length} field{section.fields.length !== 1 ? "s" : ""}
           </span>
-
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -765,7 +725,6 @@ function SectionCard({ section, index, total, fieldErrors }) {
               </>
             )}
           </button>
-
           {total > 1 && (
             <button
               onClick={() => removeSection(section.id)}
@@ -811,9 +770,9 @@ function SectionCard({ section, index, total, fieldErrors }) {
   );
 }
 
-import SchemaRenderer from "../../schemaRenderer/v1/SchemaRenderer";
-import schemaService from "../../../services/schemaService";
-import testService from "../../../services/testService";
+import SchemaRenderer from "../schemaRenderer/SchemaRenderer";
+import schemaService from "../../services/schemaService";
+import testService from "../../services/testService";
 
 function SkeletonLoader() {
   return (
@@ -833,7 +792,6 @@ function SkeletonLoader() {
 function normalizeSchema(apiSchema) {
   return {
     ...apiSchema,
-    version: apiSchema.version || "V1",
     sections: (apiSchema.sections || []).map((sec) => ({
       ...sec,
       id: sec.id ?? sec._id ?? Date.now() + Math.random(),
@@ -864,13 +822,11 @@ export default function SchemaBuilder() {
   } = useSchemaStore();
 
   const navigate = useNavigate();
-
   const { schemaId } = useParams();
   const isEditMode = Boolean(schemaId);
 
   const [loadingSchema, setLoadingSchema] = useState(isEditMode);
   const [loadError, setLoadError] = useState(null);
-
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState(null);
@@ -897,18 +853,15 @@ export default function SchemaBuilder() {
 
   useEffect(() => {
     if (!isEditMode) return;
-
     const loadSchema = async () => {
       setLoadingSchema(true);
       setLoadError(null);
       try {
         const response = await schemaService.getById(schemaId);
-        const normalized = normalizeSchema(response.data);
-        setSchema(normalized);
+        setSchema(normalizeSchema(response.data));
       } catch (e) {
         console.error("Failed to load schema:", e);
-        const message = e?.response?.data?.message || e?.message || "Failed to load schema. Please try again.";
-        setLoadError(message);
+        setLoadError(e?.response?.data?.message || e?.message || "Failed to load schema. Please try again.");
       } finally {
         setLoadingSchema(false);
       }
@@ -929,7 +882,6 @@ export default function SchemaBuilder() {
       });
     });
     setFieldErrors(fErrs);
-
     return { errs, hasFieldErrors: Object.keys(fErrs).length > 0 };
   };
 
@@ -937,7 +889,6 @@ export default function SchemaBuilder() {
     name: schema.name,
     description: schema.description,
     testId: schema.testId,
-    version: schema.version || "V1",
     isActive: schema.isActive,
     hasStaticStandardRange: schema.hasStaticStandardRange,
     staticStandardRange: schema.staticStandardRange,
@@ -964,21 +915,19 @@ export default function SchemaBuilder() {
         const response = await schemaService.addNew(payload);
         showToast("success", "Schema saved successfully");
         const newId = response?.data?._id;
-        if (newId) {
-          navigate(`/schema/${newId}`, { replace: true });
-        }
+        if (newId) navigate(`/schema/${newId}`, { replace: true });
       }
-
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
       console.error("Save failed:", e);
-      const message =
+      showToast(
+        "error",
         e?.response?.data?.message ||
-        e?.response?.data?.error ||
-        e?.message ||
-        "Something went wrong. Please try again.";
-      showToast("error", message);
+          e?.response?.data?.error ||
+          e?.message ||
+          "Something went wrong. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -1034,19 +983,12 @@ export default function SchemaBuilder() {
                 {schema.name || (
                   <span className="text-gray-400 font-normal italic">{isEditMode ? "Edit Schema" : "New Schema"}</span>
                 )}
-                {/* ── Version badge ── */}
-                {schema.version && (
-                  <span className="text-xs font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-full border border-indigo-100 tracking-wide">
-                    {schema.version}
-                  </span>
-                )}
                 {isEditMode && (
                   <span className="text-xs font-normal px-2 py-0.5 bg-blue-50 text-blue-500 rounded-full border border-blue-100">
                     Editing
                   </span>
                 )}
               </h1>
-              {/* ── Subtitle: Test name + testId ── */}
               <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
                 {schema.testId && (
                   <>
@@ -1136,7 +1078,6 @@ export default function SchemaBuilder() {
                 />
               </div>
 
-              {/* ── Schema Name + Description ── */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1.5">
@@ -1146,9 +1087,7 @@ export default function SchemaBuilder() {
                     value={schema.name}
                     onChange={(e) => setSchemaField("name", e.target.value)}
                     placeholder="e.g. Complete Blood Count"
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all ${
-                      errors.name ? "border-red-400" : "border-gray-200"
-                    }`}
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all ${errors.name ? "border-red-400" : "border-gray-200"}`}
                   />
                   {errors.name && (
                     <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
@@ -1165,9 +1104,7 @@ export default function SchemaBuilder() {
                     value={schema.description}
                     onChange={(e) => setSchemaField("description", e.target.value)}
                     placeholder="Brief description of this schema"
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all ${
-                      errors.description ? "border-red-400" : "border-gray-200"
-                    }`}
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all ${errors.description ? "border-red-400" : "border-gray-200"}`}
                   />
                   {errors.description && (
                     <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
@@ -1214,18 +1151,14 @@ export default function SchemaBuilder() {
               <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
                 <button
                   onClick={() => setActiveTab("builder")}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === "builder" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                  }`}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === "builder" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                 >
                   <Settings2 className="w-3.5 h-3.5" />
                   Builder
                 </button>
                 <button
                   onClick={() => setActiveTab("preview")}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === "preview" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                  }`}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === "preview" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                 >
                   <Eye className="w-3.5 h-3.5" />
                   Form Preview

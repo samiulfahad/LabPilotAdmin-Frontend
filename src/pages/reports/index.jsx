@@ -5,7 +5,7 @@ import schemaService from "../../services/schemaService";
 import Popup from "../../components/popup/Popup";
 import LoadingScreen from "../../components/loadingPage";
 import Report from "./Report";
-import SchemaRenderer from "../schemaRenderer/v1/SchemaRenderer";
+import SchemaRenderer from "../schemaRenderer/SchemaRenderer";
 
 // ─── Edit Drawer ──────────────────────────────────────────────────────────────
 function EditDrawer({ report, schema, onClose, onSaved }) {

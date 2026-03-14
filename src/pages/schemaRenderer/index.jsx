@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { AlertCircle, RotateCcw } from "lucide-react";
 import SchemaRenderer from "./SchemaRenderer";
-import schemaService from "../../../services/schemaService";
-import reportService from "../../../services/reportService";
-import LoadingScreen from "../../../components/loadingPage";
-import Popup from "../../../components/popup/Popup";
+import schemaService from "../../services/schemaService";
+import reportService from "../../services/reportService";
+import LoadingScreen from "../../components/loadingPage";
+import Popup from "../../components/popup/Popup";
 
 /**
  * RenderSchemaPage
